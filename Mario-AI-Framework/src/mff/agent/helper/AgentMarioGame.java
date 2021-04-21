@@ -1,9 +1,12 @@
 package mff.agent.helper;
 
-import engine.core.*;
+import engine.core.MarioForwardModel;
+import engine.core.MarioRender;
+import engine.core.MarioWorld;
 import engine.helper.GameStatus;
 import engine.helper.MarioActions;
 import mff.forwardmodel.common.Converter;
+import mff.forwardmodel.slim.core.MarioForwardModelSlim;
 
 import javax.swing.*;
 import java.awt.*;
@@ -37,8 +40,9 @@ public class AgentMarioGame {
     }
 
     public void runGame(IMarioAgentSlim agent, String level, int timer, int marioState, boolean visuals, int fps, float scale) {
+        JFrame window = null;
         if (visuals) {
-            JFrame window = new JFrame("Mario AI Framework");
+            window = new JFrame("Mario AI Framework");
             this.render = new MarioRender(scale);
             window.setContentPane(this.render);
             window.pack();
@@ -49,6 +53,8 @@ public class AgentMarioGame {
         }
         this.setAgent(agent);
         gameLoop(level, timer, marioState, visuals, fps);
+        if (visuals)
+            window.dispose();
     }
 
     private void gameLoop(String level, int timer, int marioState, boolean visual, int fps) {
@@ -74,15 +80,16 @@ public class AgentMarioGame {
             this.render.addFocusListener(this.render);
         }
 
-        MarioTimer agentTimer = new MarioTimer(maxTime);
-        this.agent.initialize(Converter.originalToSlim(new MarioForwardModel(world.clone()), 0), agentTimer);
+        MarioTimerSlim agentTimer;
+        MarioForwardModelSlim slimModel = Converter.originalToSlim(new MarioForwardModel(world.clone()), 0);
+        this.agent.initialize(slimModel);
 
         while (world.gameStatus == GameStatus.RUNNING) {
             if (!this.pause) {
 
                 //get actions
-                agentTimer = new MarioTimer(maxTime);
-                boolean[] actions = this.agent.getActions(Converter.originalToSlim(new MarioForwardModel(world.clone()), 0), agentTimer);
+                agentTimer = new MarioTimerSlim(maxTime);
+                boolean[] actions = this.agent.getActions(slimModel.clone(), agentTimer);
 
                 if (verbose) {
                     if (agentTimer.getRemainingTime() < 0 && Math.abs(agentTimer.getRemainingTime()) > graceTime) {
@@ -90,8 +97,11 @@ public class AgentMarioGame {
                                 + Math.abs(agentTimer.getRemainingTime()) + " msec.");
                     }
                 }
+
                 // update world
                 world.update(actions);
+                // keep forward model up with world
+                slimModel.advance(actions);
             }
 
             //render world
@@ -109,5 +119,6 @@ public class AgentMarioGame {
                 }
             }
         }
+        System.out.println(world.gameStatus);
     }
 }

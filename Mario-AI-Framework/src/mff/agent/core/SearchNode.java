@@ -6,18 +6,18 @@ import mff.forwardmodel.slim.core.MarioForwardModelSlim;
 import mff.forwardmodel.slim.core.MarioWorldSlim;
 
 public class SearchNode {
-    public int timeElapsed = 0;
+    public int timeElapsed;
     public float remainingTimeEstimated = 0;
     public float remainingTime = 0;
 
-    public SearchNode parentPos = null;
+    public SearchNode parentPos;
     public MarioForwardModelSlim sceneSnapshot = null;
     public int distanceFromOrigin = 0;
     public boolean hasBeenHurt = false;
     public boolean isInVisitedList = false;
 
     boolean[] action;
-    int repetitions = 1;
+    int repetitions;
 
     public float calcRemainingTime(float marioX, float marioXA) {
         return (100000 - (maxForwardMovement(marioXA, 1000) + marioX)) / Helper.maxMarioSpeed - 1000;
@@ -75,11 +75,11 @@ public class SearchNode {
     }
 
     public ArrayList<SearchNode> generateChildren() {
-        ArrayList<SearchNode> list = new ArrayList<SearchNode>();
-        ArrayList<boolean[]> possibleActions = Helper.createPossibleActions(this);
+        ArrayList<SearchNode> list = new ArrayList<>();
         if (this.isLeafNode()) {
-            possibleActions.clear();
+            return list;
         }
+        ArrayList<boolean[]> possibleActions = Helper.getPossibleActions(this);
         for (boolean[] action : possibleActions) {
             list.add(new SearchNode(action, repetitions, this));
         }
@@ -93,11 +93,8 @@ public class SearchNode {
         return this.sceneSnapshot.getGameStatusCode() != MarioWorldSlim.RUNNING;
     }
 
-    private float maxForwardMovement(float initialSpeed, int ticks) {
-        float y = ticks;
-        float s0 = initialSpeed;
-        return (float) (99.17355373 * Math.pow(0.89, y + 1) - 9.090909091 * s0 * Math.pow(0.89, y + 1) + 10.90909091 * y
-                - 88.26446282 + 9.090909091 * s0);
+    private float maxForwardMovement(float initialSpeed, float ticks) {
+        return (float) (99.17355373 * Math.pow(0.89, ticks + 1) - 9.090909091 * initialSpeed * Math.pow(0.89, ticks + 1) + 10.90909091 * ticks
+                - 88.26446282 + 9.090909091 * initialSpeed);
     }
-
 }

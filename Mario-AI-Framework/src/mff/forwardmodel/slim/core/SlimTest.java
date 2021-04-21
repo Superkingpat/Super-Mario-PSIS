@@ -27,7 +27,8 @@ public class SlimTest {
     private static void agentTest() {
         for (int i = 1; i < 16; i++) {
             MarioGameSlim game = new MarioGameSlim();
-            game.runGame(new agents.robinBaumgarten.Agent(), getLevel("./levels/original/lvl-" + i + ".txt"), 200, 0, false);
+            System.out.print("Level " + i + ": ");
+            game.runGame(new agents.robinBaumgarten.Agent(), getLevel("./levels/original/lvl-" + i + ".txt"), 200, 0, true);
         }
     }
 }

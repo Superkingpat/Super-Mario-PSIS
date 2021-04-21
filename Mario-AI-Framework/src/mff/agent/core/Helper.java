@@ -25,24 +25,6 @@ public class Helper {
         return damage;
     }
 
-    public static String getActionString(boolean[] action) {
-        String s = "";
-        if (action[MarioActions.RIGHT.getValue()])
-            s += "Forward ";
-        if (action[MarioActions.LEFT.getValue()])
-            s += "Backward ";
-        if (action[MarioActions.SPEED.getValue()])
-            s += "Speed ";
-        if (action[MarioActions.JUMP.getValue()])
-            s += "Jump ";
-        if (action[MarioActions.DOWN.getValue()])
-            s += "Duck";
-        if (s.length() == 0) {
-            s = "[NONE]";
-        }
-        return s;
-    }
-
     public static float[] estimateMaximumForwardMovement(float currentAccel, boolean[] action, int ticks) {
         float dist = 0;
         float runningSpeed = action[MarioActions.SPEED.getValue()] ? 1.2f : 0.6f;
@@ -62,46 +44,38 @@ public class Helper {
         return ret;
     }
 
-    public static boolean[] createAction(boolean left, boolean right, boolean down, boolean jump, boolean speed) {
-        boolean[] action = new boolean[5];
-        action[MarioActions.DOWN.getValue()] = down;
-        action[MarioActions.JUMP.getValue()] = jump;
-        action[MarioActions.LEFT.getValue()] = left;
-        action[MarioActions.RIGHT.getValue()] = right;
-        action[MarioActions.SPEED.getValue()] = speed;
-        return action;
-    }
-
     public static boolean canJumpHigher(SearchNode node, boolean checkParent) {
         if (node.parentPos != null && checkParent && canJumpHigher(node.parentPos, false))
             return true;
         return node.sceneSnapshot.mayMarioJump() || node.sceneSnapshot.getMarioCanJumpHigher();
     }
 
-    public static ArrayList<boolean[]> createPossibleActions(SearchNode node) {
-        ArrayList<boolean[]> possibleActions = new ArrayList<boolean[]>();
-        // jump
+    public static ArrayList<boolean[]> getPossibleActions(SearchNode node) {
         if (canJumpHigher(node, true))
-            possibleActions.add(Helper.createAction(false, false, false, true, false));
-        if (canJumpHigher(node, true))
-            possibleActions.add(Helper.createAction(false, false, false, true, true));
-
-        // run right
-        possibleActions.add(Helper.createAction(false, true, false, false, true));
-        if (canJumpHigher(node, true))
-            possibleActions.add(Helper.createAction(false, true, false, true, true));
-        possibleActions.add(Helper.createAction(false, true, false, false, false));
-        if (canJumpHigher(node, true))
-            possibleActions.add(Helper.createAction(false, true, false, true, false));
-
-        // run left
-        possibleActions.add(Helper.createAction(true, false, false, false, false));
-        if (canJumpHigher(node, true))
-            possibleActions.add(Helper.createAction(true, false, false, true, false));
-        possibleActions.add(Helper.createAction(true, false, false, false, true));
-        if (canJumpHigher(node, true))
-            possibleActions.add(Helper.createAction(true, false, false, true, true));
-
-        return possibleActions;
+            return actionsWithJump;
+        else
+            return actionsNoJump;
     }
+
+    private static final ArrayList<boolean[]> actionsNoJump = new ArrayList<>() {{
+        // right, right speed, left, left speed
+        add(new boolean[] { false, true, false, false, false });
+        add(new boolean[] { false, true, false, false, true });
+        add(new boolean[] { true, false, false, false, false });
+        add(new boolean[] { true, false, false, false, true });
+    }};
+
+    private static final ArrayList<boolean[]> actionsWithJump = new ArrayList<>() {{
+        // right, right speed, left, left speed
+        add(new boolean[] { false, true, false, false, false });
+        add(new boolean[] { false, true, false, false, true });
+        add(new boolean[] { true, false, false, false, false });
+        add(new boolean[] { true, false, false, false, true });
+        // jump, jump right, jump right speed, jump left, jump left speed
+        add(new boolean[] { false, false, false, true, false });
+        add(new boolean[] { false, true, false, true, false });
+        add(new boolean[] { false, true, false, true, true });
+        add(new boolean[] { true, false, false, true, false });
+        add(new boolean[] { true, false, false, true, true });
+    }};
 }

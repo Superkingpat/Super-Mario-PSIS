@@ -81,7 +81,39 @@ public class PerformanceTests {
         //testArraysCreation();;
         //testOneArrayVsFour();
         //testOneArrayVsTwo();
-        testCopySpeedDiff();
+        //testCopySpeedDiff();
+        testCloneAndConvertVsAdvance();
+    }
+
+    private static void testCloneAndConvertVsAdvance() {
+        String level = getLevel("./levels/original/lvl-1.txt");
+        MarioWorld world = new MarioWorld(null);
+        world.visuals = false;
+        world.initializeLevel(level, 1000 * 200);
+        world.mario.isLarge = false;
+        world.mario.isFire = false;
+        world.update(new boolean[MarioActions.numberOfActions()]);
+
+        long time;
+        long duration;
+
+        MarioForwardModelSlim slimModel = Converter.originalToSlim(new MarioForwardModel(world.clone()), 0);
+
+        time = System.currentTimeMillis();
+        for (int i = 0; i < 100; i++) {
+            MarioForwardModelSlim test = Converter.originalToSlim(new MarioForwardModel(world.clone()), 0);
+        }
+        duration = System.currentTimeMillis() - time;
+        System.out.println("Clone + convert: " + duration + " ms");
+
+        boolean[] action = { true, false, false, false, true };
+
+        time = System.currentTimeMillis();
+        for (int i = 0; i < 100; i++) {
+            slimModel.advance(action);
+        }
+        duration = System.currentTimeMillis() - time;
+        System.out.println("Advance: " + duration + " ms");
     }
 
     private static void testCopySpeedDiff() {
