@@ -31,8 +31,12 @@ public class MarioForwardModelSlim {
         return this.world.gameStatusCode;
     }
 
-    public float[] getMarioFloatPos() {
-        return new float[] { this.world.mario.x, this.world.mario.y };
+    public float getMarioX() {
+        return this.world.mario.x;
+    }
+
+    public float getMarioY() {
+        return this.world.mario.y;
     }
 
     public float[] getMarioFloatVelocity() {

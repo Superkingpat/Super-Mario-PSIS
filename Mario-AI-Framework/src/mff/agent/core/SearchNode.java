@@ -33,7 +33,7 @@ public class SearchNode {
     public float estimateRemainingTimeChild(boolean[] action, int repetitions) {
         float[] childbehaviorDistanceAndSpeed = Helper.estimateMaximumForwardMovement(
                 this.sceneSnapshot.getMarioFloatVelocity()[0], action, repetitions);
-        return calcRemainingTime(this.sceneSnapshot.getMarioFloatPos()[0] + childbehaviorDistanceAndSpeed[0],
+        return calcRemainingTime(this.sceneSnapshot.getMarioX() + childbehaviorDistanceAndSpeed[0],
                 childbehaviorDistanceAndSpeed[1]);
     }
 
@@ -54,7 +54,7 @@ public class SearchNode {
     public void initializeRoot(MarioForwardModelSlim model) {
         if (this.parentPos == null) {
             this.sceneSnapshot = model.clone();
-            this.remainingTimeEstimated = calcRemainingTime(model.getMarioFloatPos()[0], 0);
+            this.remainingTimeEstimated = calcRemainingTime(model.getMarioX(), 0);
         }
     }
 
@@ -65,7 +65,7 @@ public class SearchNode {
         }
         int marioDamage = Helper.getMarioDamage(this.sceneSnapshot, this.parentPos.sceneSnapshot);
         remainingTime =
-                calcRemainingTime(this.sceneSnapshot.getMarioFloatPos()[0], this.sceneSnapshot.getMarioFloatVelocity()[0]) +
+                calcRemainingTime(this.sceneSnapshot.getMarioX(), this.sceneSnapshot.getMarioFloatVelocity()[0]) +
                         marioDamage * (1000000 - 100 * distanceFromOrigin);
         if (isInVisitedList)
             remainingTime += Helper.visitedListPenalty;

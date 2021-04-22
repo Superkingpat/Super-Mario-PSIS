@@ -4,7 +4,7 @@ import mff.forwardmodel.slim.sprites.FireballSlim;
 import mff.forwardmodel.slim.sprites.ShellSlim;
 
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.LinkedList;
 
 public class MarioUpdateContextSlim {
 
@@ -12,12 +12,12 @@ public class MarioUpdateContextSlim {
     public boolean[] actions;
     public int fireballsOnScreen;
 
-    public final ArrayList<FireballSlim> fireballsToCheck = new ArrayList<>();
-    public final ArrayList<ShellSlim> shellsToCheck = new ArrayList<>();
-    final ArrayList<MarioSpriteSlim> addedSprites = new ArrayList<>();
-    final ArrayList<MarioSpriteSlim> removedSprites = new ArrayList<>();
+    public final ArrayList<FireballSlim> fireballsToCheck = new ArrayList<>(2);
+    public final ArrayList<ShellSlim> shellsToCheck = new ArrayList<>(2);
+    final ArrayList<MarioSpriteSlim> addedSprites = new ArrayList<>(8);
+    final ArrayList<MarioSpriteSlim> removedSprites = new ArrayList<>(8);
 
-    private static final ConcurrentLinkedQueue<MarioUpdateContextSlim> pool = new ConcurrentLinkedQueue<>();
+    private static final LinkedList<MarioUpdateContextSlim> pool = new LinkedList<>();
 
     public static MarioUpdateContextSlim get() {
         MarioUpdateContextSlim ctx = pool.poll();

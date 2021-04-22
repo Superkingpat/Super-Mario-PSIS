@@ -42,7 +42,7 @@ public class MarioWorldSlim {
         this.coins = originalWorld.coins;
         this.lives = originalWorld.lives;
 
-        sprites = new ArrayList<>();
+        sprites = new ArrayList<>(16);
 
         for (MarioSprite originalSprite : originalWorld.getSprites()) {
             if (originalSprite instanceof BulletBill)
@@ -315,7 +315,8 @@ public class MarioWorldSlim {
                 }
             }
         }
-        updateContext.shellsToCheck.clear();
+        if (updateContext.shellsToCheck.size() != 0)
+            updateContext.shellsToCheck.clear();
 
         for (FireballSlim fireball : updateContext.fireballsToCheck) {
             for (MarioSpriteSlim sprite : sprites) {
@@ -326,14 +327,24 @@ public class MarioWorldSlim {
                 }
             }
         }
-        updateContext.fireballsToCheck.clear();
+        if (updateContext.fireballsToCheck.size() != 0)
+            updateContext.fireballsToCheck.clear();
 
         this.level.update((int) mario.x / 16);
 
-        sprites.addAll(0, updateContext.addedSprites);
-        sprites.removeAll(updateContext.removedSprites);
-        updateContext.addedSprites.clear();
-        updateContext.removedSprites.clear();
+        //sprites.addAll(0, updateContext.addedSprites);
+        for (MarioSpriteSlim newSprite : updateContext.addedSprites) {
+            sprites.add(newSprite);
+        }
+        //sprites.removeAll(updateContext.removedSprites);
+        for (MarioSpriteSlim removedSprite : updateContext.removedSprites) {
+            sprites.remove(removedSprite);
+        }
+
+        if (updateContext.addedSprites.size() != 0)
+            updateContext.addedSprites.clear();
+        if (updateContext.removedSprites.size() != 0)
+            updateContext.removedSprites.clear();
 
         updateContext.world = null;
         updateContext.actions = null;

@@ -3,6 +3,7 @@ package mff.agent.core;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 
 import mff.agent.helper.MarioTimerSlim;
 import mff.forwardmodel.slim.core.MarioForwardModelSlim;
@@ -13,7 +14,7 @@ public class AStarTree {
     public SearchNode furthestPosition;
     float currentSearchStartingMarioXPos;
     ArrayList<SearchNode> posPool;
-    HashSet<Integer> visitedStates = new HashSet<>();
+    LinkedHashSet<Integer> visitedStates = new LinkedHashSet<>();
     //private byte[][][] visitedStates;
     //private byte searchNumber;
     //ArrayList<int[]> visitedStates = new ArrayList<>();
@@ -33,7 +34,7 @@ public class AStarTree {
         boolean currentGood = false;
         int maxRight = 176;
         while (posPool.size() != 0
-                && ((bestPosition.sceneSnapshot.getMarioFloatPos()[0] - currentSearchStartingMarioXPos < maxRight) || !currentGood)
+                && ((bestPosition.sceneSnapshot.getMarioX() - currentSearchStartingMarioXPos < maxRight) || !currentGood)
                 && timer.getRemainingTime() > 0) {
             current = pickBestPos(posPool);
             if (current == null) {
@@ -44,8 +45,8 @@ public class AStarTree {
 
             if (realRemainingTime < 0) {
                 continue;
-            } else if (!current.isInVisitedList && isInVisited((int) current.sceneSnapshot.getMarioFloatPos()[0],
-                    (int) current.sceneSnapshot.getMarioFloatPos()[1], current.timeElapsed)) {
+            } else if (!current.isInVisitedList && isInVisited((int) current.sceneSnapshot.getMarioX(),
+                    (int) current.sceneSnapshot.getMarioY(), current.timeElapsed)) {
                 realRemainingTime += Helper.visitedListPenalty;
                 current.isInVisitedList = true;
                 current.remainingTime = realRemainingTime;
@@ -57,18 +58,18 @@ public class AStarTree {
                 posPool.add(current);
             } else {
                 currentGood = true;
-                visited((int) current.sceneSnapshot.getMarioFloatPos()[0], (int) current.sceneSnapshot.getMarioFloatPos()[1], current.timeElapsed);
+                visited((int) current.sceneSnapshot.getMarioX(), (int) current.sceneSnapshot.getMarioY(), current.timeElapsed);
                 posPool.addAll(current.generateChildren());
             }
             if (currentGood) {
                 if (bestPosition.getRemainingTime() > current.getRemainingTime())
                     bestPosition = current;
-                if (current.sceneSnapshot.getMarioFloatPos()[0] > furthestPosition.sceneSnapshot.getMarioFloatPos()[0])
+                if (current.sceneSnapshot.getMarioX() > furthestPosition.sceneSnapshot.getMarioX())
                     furthestPosition = current;
             }
         }
-        if (current.sceneSnapshot.getMarioFloatPos()[0] - currentSearchStartingMarioXPos < maxRight
-                && furthestPosition.sceneSnapshot.getMarioFloatPos()[0] > bestPosition.sceneSnapshot.getMarioFloatPos()[0] + 20)
+        if (current.sceneSnapshot.getMarioX() - currentSearchStartingMarioXPos < maxRight
+                && furthestPosition.sceneSnapshot.getMarioX() > bestPosition.sceneSnapshot.getMarioX() + 20)
             // Couldnt plan till end of screen, take furthest
             bestPosition = furthestPosition;
     }
@@ -90,7 +91,7 @@ public class AStarTree {
         }*/
 
         posPool.addAll(startPos.generateChildren());
-        currentSearchStartingMarioXPos = model.getMarioFloatPos()[0];
+        currentSearchStartingMarioXPos = model.getMarioX();
 
         bestPosition = startPos;
         furthestPosition = startPos;

@@ -16,7 +16,7 @@ public class Helper {
             damage += 1;
         }
         if (model.getGameStatusCode() == MarioWorldSlim.LOSE) {
-            if (model.getMarioFloatPos()[1] > model.getLevelFloatDimensions()[1] - 20) {
+            if (model.getMarioY() > model.getLevelFloatDimensions()[1] - 20) {
                 damage += 5;
             } else {
                 damage += 2;
