@@ -1,6 +1,7 @@
 package mff.agent.core;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 
 import mff.forwardmodel.slim.core.MarioForwardModelSlim;
 import mff.forwardmodel.slim.core.MarioWorldSlim;
@@ -18,6 +19,8 @@ public class SearchNode {
 
     boolean[] action;
     int repetitions;
+
+    public float cost;
 
     public float calcRemainingTime(float marioX, float marioXA) {
         return (100000 - (maxForwardMovement(marioXA, 1000) + marioX)) / Helper.maxMarioSpeed - 1000;
@@ -49,6 +52,7 @@ public class SearchNode {
             timeElapsed = parent.timeElapsed + repetitions;
         else
             timeElapsed = 0;
+        calculateCost();
     }
 
     public void initializeRoot(MarioForwardModelSlim model) {
@@ -96,5 +100,15 @@ public class SearchNode {
     private float maxForwardMovement(float initialSpeed, float ticks) {
         return (float) (99.17355373 * Math.pow(0.89, ticks + 1) - 9.090909091 * initialSpeed * Math.pow(0.89, ticks + 1) + 10.90909091 * ticks
                 - 88.26446282 + 9.090909091 * initialSpeed);
+    }
+
+    public void calculateCost() {
+        this.cost = getRemainingTime() + timeElapsed * 0.9f;
+    }
+}
+
+class CompareByCost implements Comparator<SearchNode> {
+    public int compare(SearchNode o1, SearchNode o2) {
+        return Float.compare(o1.cost, o2.cost);
     }
 }

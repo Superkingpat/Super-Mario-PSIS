@@ -1,9 +1,6 @@
 package mff.agent.core;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
+import java.util.*;
 
 import mff.agent.helper.MarioTimerSlim;
 import mff.forwardmodel.slim.core.MarioForwardModelSlim;
@@ -13,7 +10,8 @@ public class AStarTree {
     public SearchNode bestPosition;
     public SearchNode furthestPosition;
     float currentSearchStartingMarioXPos;
-    ArrayList<SearchNode> posPool;
+    //ArrayList<SearchNode> posPool;
+    PriorityQueue<SearchNode> posPool;
     LinkedHashSet<Integer> visitedStates = new LinkedHashSet<>();
     //private byte[][][] visitedStates;
     //private byte searchNumber;
@@ -51,10 +49,12 @@ public class AStarTree {
                 current.isInVisitedList = true;
                 current.remainingTime = realRemainingTime;
                 current.remainingTimeEstimated = realRemainingTime;
+                current.calculateCost();
                 posPool.add(current);
             } else if (realRemainingTime - current.remainingTimeEstimated > 0.1) {
                 // current item is not as good as anticipated. put it back in pool and look for best again
                 current.remainingTimeEstimated = realRemainingTime;
+                current.calculateCost();
                 posPool.add(current);
             } else {
                 currentGood = true;
@@ -78,7 +78,7 @@ public class AStarTree {
         SearchNode startPos = new SearchNode(null, repetitions, null);
         startPos.initializeRoot(model);
 
-        posPool = new ArrayList<>();
+        posPool = new PriorityQueue<>(new CompareByCost());
         visitedStates.clear();
         /*searchNumber++;
         if (searchNumber == 0) {
@@ -117,7 +117,13 @@ public class AStarTree {
         return actions;
     }
 
-    private SearchNode pickBestPos(ArrayList<SearchNode> posPool) {
+    private SearchNode pickBestPos(PriorityQueue<SearchNode> posPool) {
+        SearchNode bestPos = posPool.peek();
+        if (bestPos != null)
+            posPool.remove(bestPos);
+        return bestPos;
+
+        /*
         SearchNode bestPos = null;
         float bestPosCost = 10000000;
         for (SearchNode current : posPool) {
@@ -128,7 +134,7 @@ public class AStarTree {
             }
         }
         posPool.remove(bestPos);
-        return bestPos;
+        return bestPos;*/
     }
 
     public boolean[] optimise(MarioForwardModelSlim model, MarioTimerSlim timer) {
