@@ -3,8 +3,8 @@ package mff.forwardmodel.slim.core;
 import mff.forwardmodel.slim.sprites.FireballSlim;
 import mff.forwardmodel.slim.sprites.ShellSlim;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 public class MarioUpdateContextSlim {
 
@@ -12,17 +12,22 @@ public class MarioUpdateContextSlim {
     public boolean[] actions;
     public int fireballsOnScreen;
 
-    public final ArrayList<FireballSlim> fireballsToCheck = new ArrayList<>(2);
-    public final ArrayList<ShellSlim> shellsToCheck = new ArrayList<>(2);
-    final ArrayList<MarioSpriteSlim> addedSprites = new ArrayList<>(8);
-    final ArrayList<MarioSpriteSlim> removedSprites = new ArrayList<>(8);
+    public final ArrayList<FireballSlim> fireballsToCheck = new ArrayList<>();
+    public final ArrayList<ShellSlim> shellsToCheck = new ArrayList<>();
+    final ArrayList<MarioSpriteSlim> addedSprites = new ArrayList<>();
+    final ArrayList<MarioSpriteSlim> removedSprites = new ArrayList<>();
 
-    private static final LinkedList<MarioUpdateContextSlim> pool = new LinkedList<>();
+    private static final ArrayDeque<MarioUpdateContextSlim> pool = new ArrayDeque<>();
+    //private static final ArrayBlockingQueue<MarioUpdateContextSlim> pool = new ArrayBlockingQueue<>(); //TODO might be thread safe and fast?
 
     public static MarioUpdateContextSlim get() {
         MarioUpdateContextSlim ctx = pool.poll();
         if (ctx != null) return ctx;
-        return new MarioUpdateContextSlim();
+
+        MarioUpdateContextSlim newCtx = new MarioUpdateContextSlim();
+        newCtx.addedSprites.ensureCapacity(10);
+        newCtx.removedSprites.ensureCapacity(10);
+        return newCtx;
     }
 
     static void back(MarioUpdateContextSlim ctx) {

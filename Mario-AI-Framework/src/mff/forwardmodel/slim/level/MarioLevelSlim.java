@@ -251,14 +251,14 @@ public class MarioLevelSlim {
             return;
         }
 
-        if (levelCutout[calculateCutoutIndex(xTile, yTile)] == LevelPart.PIPE_TOP_LEFT_WITH_FLOWER.getValue()) {
-            levelCutout[calculateCutoutIndex(xTile, yTile)] = LevelPart.PIPE_TOP_LEFT_WITHOUT_FLOWER.getValue();
-            aliveFlags[staticLevel.tiles[xTile][yTile].id] = false;
+        int cutoutIndex = calculateCutoutIndex(xTile, yTile);
+        if (levelCutout[cutoutIndex] == LevelPart.PIPE_TOP_LEFT_WITH_FLOWER.getValue()) {
+            levelCutout[cutoutIndex] = LevelPart.PIPE_TOP_LEFT_WITHOUT_FLOWER.getValue();
         }
         else {
-            levelCutout[calculateCutoutIndex(xTile, yTile)] = (byte) index;
-            aliveFlags[staticLevel.tiles[xTile][yTile].id] = false;
+            levelCutout[cutoutIndex] = (byte) index;
         }
+        aliveFlags[staticLevel.tiles[xTile][yTile].id] = false;
     }
 
     public SpriteTypeCommon getSpriteType(int xTile, int yTile) {
