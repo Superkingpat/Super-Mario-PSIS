@@ -93,6 +93,9 @@ public class MarioGameSlim {
         MarioTimer agentTimer = new MarioTimer(MarioGameSlim.maxTime);
         this.agent.initialize(new MarioForwardModel(world.clone()), agentTimer);
 
+        long originalUpdateTime = 0;
+        long slimUpdateTime = 0;
+
         while (world.gameStatus == GameStatus.RUNNING) {
             if (!this.pause) {
 
@@ -113,15 +116,21 @@ public class MarioGameSlim {
                     }
                 }
 
+                long start = System.nanoTime();
                 // update world
                 world.update(actionsCopy);
+                long end = System.nanoTime();
+                originalUpdateTime += end - start;
 
                 // clone slim model and advance it
                 MarioForwardModelSlim slimClone = slimModel.clone();
                 slimClone.advance(actionsCopy);
 
+                start = System.nanoTime();
                 // advance slim model
                 slimModel.advance(actionsCopy);
+                end = System.nanoTime();
+                slimUpdateTime += end - start;
 
                 // create control slim model
                 originalModel = new MarioForwardModel(world.clone());
@@ -156,5 +165,10 @@ public class MarioGameSlim {
             }
         }
         System.out.println(world.gameStatus);
+
+        double originalUpdateTimeDouble = originalUpdateTime;
+        System.out.printf("Original update time: %,.3f ms%n", originalUpdateTimeDouble / 1000000d);
+        double slimUpdateTimeDouble = slimUpdateTime;
+        System.out.printf("Slim update time: %,.3f ms%n", slimUpdateTimeDouble / 1000000d);
     }
 }
