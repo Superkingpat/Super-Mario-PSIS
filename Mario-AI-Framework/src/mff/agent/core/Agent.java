@@ -13,6 +13,7 @@ public class Agent implements IMarioAgentSlim {
     public void initialize(MarioForwardModelSlim model) {
         this.action = new boolean[MarioActions.numberOfActions()];
         this.tree = new AStarTree(model);
+        tree.startSearch(model, 2);
     }
 
     @Override

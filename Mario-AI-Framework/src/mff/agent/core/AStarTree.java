@@ -19,8 +19,11 @@ public class AStarTree {
 
     private ArrayList<boolean[]> currentActionPlan;
     int ticksBeforeReplanning = 0;
+    static boolean first = true;
 
     private static final boolean[] fastRightMovement = new boolean[] { false, true, false, false, true };
+
+    private static SearchNode previousPos;
 
     public AStarTree(MarioForwardModelSlim model) {
         /*searchNumber = 1;
@@ -34,6 +37,7 @@ public class AStarTree {
         while (posPool.size() != 0
                 && ((bestPosition.sceneSnapshot.getMarioX() - currentSearchStartingMarioXPos < maxRight) || !currentGood)
                 && timer.getRemainingTime() > 0) {
+            System.out.println(posPool.size());
             current = pickBestPos(posPool);
             if (current == null) {
                 return;
@@ -67,6 +71,12 @@ public class AStarTree {
                 if (current.sceneSnapshot.getMarioX() > furthestPosition.sceneSnapshot.getMarioX())
                     furthestPosition = current;
             }
+            currentGood = false;
+            if (bestPosition.sceneSnapshot.getGameStatusCode() == MarioWorldSlim.WIN ||
+            furthestPosition.sceneSnapshot.getGameStatusCode() == MarioWorldSlim.WIN) {
+                System.out.println("WIN FOUND");
+                return;
+            }
         }
         if (current.sceneSnapshot.getMarioX() - currentSearchStartingMarioXPos < maxRight
                 && furthestPosition.sceneSnapshot.getMarioX() > bestPosition.sceneSnapshot.getMarioX() + 20)
@@ -74,7 +84,7 @@ public class AStarTree {
             bestPosition = furthestPosition;
     }
 
-    private void startSearch(MarioForwardModelSlim model, int repetitions) {
+    public void startSearch(MarioForwardModelSlim model, int repetitions) {
         SearchNode startPos = new SearchNode(null, repetitions, null);
         startPos.initializeRoot(model);
 
@@ -103,17 +113,20 @@ public class AStarTree {
         // just move forward if no best position exists
         if (bestPosition == null) {
             for (int i = 0; i < 10; i++) {
-                actions.add(fastRightMovement);
+                actions.add(new boolean[] {false, false, false, false, false});
             }
             return actions;
         }
 
         SearchNode current = bestPosition;
         while (current.parentPos != null) {
+            if (current.parentPos == previousPos)
+                break;
             for (int i = 0; i < current.repetitions; i++)
                 actions.add(0, current.action);
             current = current.parentPos;
         }
+        previousPos = bestPosition;
         return actions;
     }
 
@@ -138,6 +151,36 @@ public class AStarTree {
     }
 
     public boolean[] optimise(MarioForwardModelSlim model, MarioTimerSlim timer) {
+        if (first) {
+            search(new MarioTimerSlim(1000000));
+            currentActionPlan = extractPlan();
+            first = false;
+        }
+
+        return currentActionPlan.remove(0);
+
+        /*
+        ticksBeforeReplanning--;
+        if (ticksBeforeReplanning <= 0 || currentActionPlan.size() == 0) {
+            currentActionPlan = extractPlan();
+            ticksBeforeReplanning = 3; //TODO
+        }
+
+        MarioForwardModelSlim originalModel = model.clone();
+        for (int i = 0; i < currentActionPlan.size(); i++) {
+            model.advance(currentActionPlan.get(i));
+        }
+        if (model.getGameStatusCode() == MarioWorldSlim.LOSE) {
+            startSearch(originalModel, 2);
+        }
+        search(timer);
+
+        boolean[] action = new boolean[5];
+        if (currentActionPlan.size() > 0)
+            action = currentActionPlan.remove(0);
+        return action;
+*/
+        /*
         int planAhead = 3;
         int stepsPerSearch = 2;
         MarioForwardModelSlim originalModel = model.clone();
@@ -163,15 +206,15 @@ public class AStarTree {
         boolean[] action = new boolean[5];
         if (currentActionPlan.size() > 0)
             action = currentActionPlan.remove(0);
-        return action;
+        return action;*/
     }
 
     private void visited(int x, int y, int t) {
-       visitedStates.add((x << 18) | (y << 8) | t);
+       visitedStates.add((x << 18) | (y << 8));
     }
 
     private boolean isInVisited(int x, int y, int t) {
-        return visitedStates.contains((x << 18) | (y << 8) | t);
+        return visitedStates.contains((x << 18) | (y << 8));
     }
 
     /*private void visited(int x, int y, int t) {
