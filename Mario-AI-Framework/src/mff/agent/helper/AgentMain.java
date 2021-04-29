@@ -16,15 +16,15 @@ public class AgentMain {
 
     public static void main(String[] args) {
         //testLevel();
-        tesAllOriginalLevels();
+        testAllOriginalLevels();
     }
 
     private static void testLevel() {
         AgentMarioGame game = new AgentMarioGame();
-        game.runGame(new mff.agent.core.Agent(), getLevel("./levels/original/lvl-4.txt"), 200, 0, true);
+        game.runGame(new mff.agent.core.Agent(), getLevel("./levels/original/lvl-1.txt"), 200, 0, true);
     }
 
-    private static void tesAllOriginalLevels() {
+    private static void testAllOriginalLevels() {
         for (int i = 1; i < 16; i++) {
             AgentMarioGame game = new AgentMarioGame();
             System.out.print("Level " + i + ": ");

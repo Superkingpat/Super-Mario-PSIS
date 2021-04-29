@@ -12,7 +12,7 @@ public class Agent implements IMarioAgentSlim {
     @Override
     public void initialize(MarioForwardModelSlim model) {
         this.action = new boolean[MarioActions.numberOfActions()];
-        this.tree = new AStarTree(model);
+        this.tree = new AStarTree();
     }
 
     @Override
@@ -23,6 +23,6 @@ public class Agent implements IMarioAgentSlim {
 
     @Override
     public String getAgentName() {
-        return "Robin Baumgarten agent with slim forward model from MFF";
+        return "Robin Baumgarten agent with slim forward model and performance improvements";
     }
 }
