@@ -43,13 +43,14 @@ public class MarioGameSlim {
         runGame(new Agent(), level, timer, marioState, true, 30, 2);
     }
 
-    public void runGame(MarioAgent agent, String level, int timer, int marioState, boolean visuals) {
-        runGame(agent, level, timer, marioState, visuals, visuals ? 30 : 0, 2);
+    public TestResult runGame(MarioAgent agent, String level, int timer, int marioState, boolean visuals) {
+        return runGame(agent, level, timer, marioState, visuals, visuals ? 30 : 0, 2);
     }
 
-    public void runGame(MarioAgent agent, String level, int timer, int marioState, boolean visuals, int fps, float scale) {
+    public TestResult runGame(MarioAgent agent, String level, int timer, int marioState, boolean visuals, int fps, float scale) {
+        JFrame window = null;
         if (visuals) {
-            JFrame window = new JFrame("Mario AI Framework");
+            window = new JFrame("Mario AI Framework");
             this.render = new MarioRender(scale);
             window.setContentPane(this.render);
             window.pack();
@@ -59,10 +60,13 @@ public class MarioGameSlim {
             window.setVisible(true);
         }
         this.setAgent(agent);
-        gameLoop(level, timer, marioState, visuals, fps);
+        TestResult testResult = gameLoop(level, timer, marioState, visuals, fps);
+        if (visuals)
+            window.dispose();
+        return testResult;
     }
 
-    private void gameLoop(String level, int timer, int marioState, boolean visual, int fps) {
+    private TestResult gameLoop(String level, int timer, int marioState, boolean visual, int fps) {
         MarioWorld world = new MarioWorld(null);
         world.visuals = visual;
         world.initializeLevel(level, 1000 * timer);
@@ -96,6 +100,9 @@ public class MarioGameSlim {
         long originalUpdateTime = 0;
         long slimUpdateTime = 0;
 
+        long originalUpdateCounter = 0;
+        long slimUpdateCounter = 0;
+
         while (world.gameStatus == GameStatus.RUNNING) {
             if (!this.pause) {
 
@@ -121,6 +128,7 @@ public class MarioGameSlim {
                 world.update(actionsCopy);
                 long end = System.nanoTime();
                 originalUpdateTime += end - start;
+                originalUpdateCounter++;
 
                 // clone slim model and advance it
                 MarioForwardModelSlim slimClone = slimModel.clone();
@@ -131,6 +139,7 @@ public class MarioGameSlim {
                 slimModel.advance(actionsCopy);
                 end = System.nanoTime();
                 slimUpdateTime += end - start;
+                slimUpdateCounter++;
 
                 // create control slim model
                 originalModel = new MarioForwardModel(world.clone());
@@ -164,11 +173,27 @@ public class MarioGameSlim {
                 }
             }
         }
-        System.out.println(world.gameStatus);
+        //System.out.println(world.gameStatus);
 
         double originalUpdateTimeDouble = originalUpdateTime;
-        System.out.printf("Original update time: %,.3f ms%n", originalUpdateTimeDouble / 1000000d);
+        //System.out.printf("Original update time: %,.3f ms%n", originalUpdateTimeDouble / 1000000d);
+        /*System.out.println("Original update count: " + originalUpdateCounter);
+        double originalUpdateCounterDouble = originalUpdateCounter;
+        System.out.printf("Original time per update: %,.3f ms%n", (originalUpdateTimeDouble / 1000000d) / originalUpdateCounterDouble);*/
+
         double slimUpdateTimeDouble = slimUpdateTime;
-        System.out.printf("Slim update time: %,.3f ms%n", slimUpdateTimeDouble / 1000000d);
+        //System.out.printf("Slim update time: %,.3f ms%n", slimUpdateTimeDouble / 1000000d);
+        /*System.out.println("Slim update count: " + slimUpdateCounter);
+        double slimUpdateCounterDouble = slimUpdateCounter;
+        System.out.printf("Slim time per update: %,.3f ms%n", (slimUpdateTimeDouble / 1000000d) / slimUpdateCounterDouble);*/
+        TestResult testResult = new TestResult();
+        testResult.originalTime = originalUpdateTimeDouble / 1000000d;
+        testResult.slimTime = slimUpdateTimeDouble / 1000000d;
+        return testResult;
     }
+}
+
+class TestResult {
+    public double originalTime;
+    public double slimTime;
 }
