@@ -69,6 +69,7 @@ public class AStarTree {
 //                + (marioYStart - nextState.getMarioY()) + winBonus;
 
         float timeToFinish = (exitTileX - nextState.getMarioX()) / maxMarioSpeedX;
+        //timeToFinish *= 10;
         //System.out.println("DEPTH: " + nodeDepth + " | timeToFinish: " + timeToFinish);
         return nodeDepth + timeToFinish;
 	}
@@ -152,6 +153,7 @@ public class AStarTree {
 
         return actionsList;
 
+        //System.out.println("ITERATIONS: " + iterations + " | Best X: " + bestNode.state.getMarioX());
 
         /*SearchNode curr = bestNode;
         SearchNode prev = curr.parent;
@@ -164,7 +166,7 @@ public class AStarTree {
         	curr = prev;
         	prev = prev.parent;        	
         }
-        
+
         return curr.marioAction.value;*/
     }
 }

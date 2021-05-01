@@ -41,7 +41,9 @@ public class Agent implements IMarioAgentSlim {
 //        }
 
         AStarTree tree = new AStarTree(model, 2);
-        ArrayList<boolean[]> newActionsList = tree.search(timer);
+        ArrayList<boolean[]> newActionsList = null;
+        if (!AStarTree.winFound)
+             newActionsList = tree.search(timer);
 
 //        if (AStarTree.winFound) { // TODO: set win path and dont change it
 //            actionsList = newActionsList;
@@ -50,7 +52,8 @@ public class Agent implements IMarioAgentSlim {
 //        }
 
         if (newActionsList != null && newActionsList.size() > actionsList.size()) {
-            actionsList = newActionsList;
+            if (!AStarTree.winFound)
+                actionsList = newActionsList;
         }
 
         if (actionsList.size() == 0) { //TODO means finished?
