@@ -30,8 +30,24 @@ public class Agent implements IMarioAgentSlim {
         if (finished)
             return MarioAction.NO_ACTION.value;
 
+//        if (finished) { // TODO: finished state
+//            if (actionsList.size() > 0) {
+//                System.out.println(actionsList.size());
+//                return actionsList.remove((actionsList.size() - 1));
+//            }
+//            else {
+//                return MarioAction.NO_ACTION.value;
+//            }
+//        }
+
         AStarTree tree = new AStarTree(model, 2);
         ArrayList<boolean[]> newActionsList = tree.search(timer);
+
+//        if (AStarTree.winFound) { // TODO: set win path and dont change it
+//            actionsList = newActionsList;
+//            finished = true;
+//            return actionsList.remove((actionsList.size() - 1));
+//        }
 
         if (newActionsList != null && newActionsList.size() > actionsList.size()) {
             actionsList = newActionsList;
