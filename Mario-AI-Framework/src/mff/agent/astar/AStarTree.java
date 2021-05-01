@@ -10,7 +10,7 @@ import mff.forwardmodel.slim.core.MarioForwardModelSlim;
 
 public class AStarTree {
     public SearchNode bestNode;
-    public float bestNodeCost;
+    public float furthestNodeDistance;
 
     float marioXStart;
     float marioYStart;
@@ -36,7 +36,7 @@ public class AStarTree {
     	
     	bestNode = getStartNode(startState);
     	bestNode.cost = calculateCost(startState, bestNode.nodeDepth);
-    	bestNodeCost = bestNode.cost;
+    	furthestNodeDistance = bestNode.state.getMarioX();
     	
     	opened.add(bestNode);    		
     }
@@ -85,9 +85,9 @@ public class AStarTree {
         	iterations++;
             SearchNode current = opened.remove();
 
-            if (current.cost < bestNodeCost) {
+            if (current.state.getMarioX() > furthestNodeDistance) {
                 bestNode = current;
-                bestNodeCost = current.cost;
+                furthestNodeDistance = current.state.getMarioX();
             }
 
             if (current.state.getGameStatusCode() == 1) {
