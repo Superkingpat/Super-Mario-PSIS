@@ -18,6 +18,7 @@ public class Agent implements IMarioAgentSlim {
     public void initialize(MarioForwardModelSlim model) {
         this.action = new boolean[MarioActions.numberOfActions()];
         AStarTree.winFound = false;
+        AStarTree.exitTileX = model.getWorld().level.exitTileX * 16;
     }
 
     @Override
@@ -29,7 +30,7 @@ public class Agent implements IMarioAgentSlim {
         if (finished)
             return MarioAction.NO_ACTION.value;
 
-        AStarTree tree = new AStarTree(model);
+        AStarTree tree = new AStarTree(model, 2);
         ArrayList<boolean[]> newActionsList = tree.search(timer);
 
         if (newActionsList != null && newActionsList.size() > actionsList.size()) {

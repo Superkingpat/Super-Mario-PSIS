@@ -15,23 +15,27 @@ public class AStarTree {
     float marioXStart;
     float marioYStart;
     float levelCurrentTime;
+    int searchSteps;
 
     static boolean winFound = false;
+    static final float maxMarioSpeedX = 10.9f;
+    static float exitTileX;
 
-    PriorityQueue<SearchNode> opened = new PriorityQueue<>(new CompareByCostReversed());
+    PriorityQueue<SearchNode> opened = new PriorityQueue<>(new CompareByCost());
     /**
      * INT STATE -> STATE COST
      */
     HashMap<Integer, Float> visitedStates = new HashMap<>();
     
-    public AStarTree(MarioForwardModelSlim startState) {
+    public AStarTree(MarioForwardModelSlim startState, int searchSteps) {
     	levelCurrentTime = startState.getWorld().currentTimer;
-    	
+    	this.searchSteps = searchSteps;
+
     	marioXStart = startState.getMarioX();
     	marioYStart = startState.getMarioY();
     	
     	bestNode = getStartNode(startState);
-    	bestNodeCost = calculateCost(startState);
+    	bestNodeCost = calculateCost(startState, bestNode.nodeDepth);
     	
     	opened.add(bestNode);    		
     }
@@ -55,43 +59,55 @@ public class AStarTree {
     	return new SearchNode(state, parent, cost, action);
     }
     
-    private float calculateCost(MarioForwardModelSlim nextState) {
+    private float calculateCost(MarioForwardModelSlim nextState, int nodeDepth) {
         // current.nodeDepth + remaining_distance / max_speed_dx_per_frame
         // check for Mario alive after advance
 
-    	int marioState = nextState.getMarioMode() * 100 + (nextState.getWorld().mario.alive ? 0 : Integer.MIN_VALUE);
-    	int winBonus = nextState.getGameStatusCode() == 1 ? 1000 : 0;
-		return (nextState.getMarioX() - marioXStart) * 1.5f + marioState /*+ nextState.getWorld().currentTimer / 1000.0f*/
-                + (marioYStart - nextState.getMarioY()) + winBonus;
+//    	int marioState = nextState.getMarioMode() * 100 + (nextState.getWorld().mario.alive ? 0 : Integer.MIN_VALUE);
+//    	int winBonus = nextState.getGameStatusCode() == 1 ? 1000 : 0;
+//		return (nextState.getMarioX() - marioXStart) * 1.5f + marioState /*+ nextState.getWorld().currentTimer / 1000.0f*/
+//                + (marioYStart - nextState.getMarioY()) + winBonus;
+
+        float timeToFinish = (exitTileX - nextState.getMarioX()) / maxMarioSpeedX;
+        //System.out.println("DEPTH: " + nodeDepth + " | timeToFinish: " + timeToFinish);
+        return nodeDepth + timeToFinish;
 	}
     
     public ArrayList<boolean[]> search(MarioTimerSlim timer) {
     	int iterations = 0;
 
     	if (winFound)
-    	    return null;
+    	    return null; // TODO better solution
 
         while (opened.size() > 0 && timer.getRemainingTime() > 0) {
         	iterations++;
             SearchNode current = opened.remove();
 
             MarioForwardModelSlim nextState = current.state.clone();
-            
-            nextState.advance(current.marioAction.value);
 
-            float nextCost = calculateCost(nextState);
+            for (int i = 0; i < searchSteps; i++) {
+                nextState.advance(current.marioAction.value);
+            }
+
+            if (!nextState.getWorld().mario.alive) {
+                continue;
+            }
+
+            float nextCost = calculateCost(nextState, current.nodeDepth);
             int nextStateInt = getIntState(nextState);
-            
+
+            //System.out.println("BEST: " + bestNodeCost + " NEXT: " + nextCost);
+
             float nextStateIntOldScore = visitedStates.getOrDefault(nextStateInt, -1.0f);            
             if (nextStateIntOldScore >= 0) {
             	// WE HAVE ALREADY REACHED THIS STATE
-            	if (nextCost <= nextStateIntOldScore) {
+            	if (nextCost >= nextStateIntOldScore) {
                     // AND WE DO NOT HAVE BETTER SCORE
                     continue;
                 }
             }
             
-            if (bestNodeCost < nextCost) {
+            if (bestNodeCost > nextCost) {
             	bestNode = current;
             	bestNodeCost = nextCost;
             }
@@ -108,27 +124,31 @@ public class AStarTree {
             }
 
             if (nextState.getGameStatusCode() == 1) {
+                bestNode = current;
                 System.out.print("WIN FOUND ");
                 winFound = true;
                 break;
             }
         }
-        
-        //System.out.println("ITERATIONS: " + iterations + " / Best X: " + bestNode.state.getMarioX());
 
         ArrayList<boolean[]> actionsList = new ArrayList<>();
 
         SearchNode curr = bestNode;
 
-        actionsList.add(curr.marioAction.value);
+        //actionsList.add(curr.marioAction.value);
 
         while (curr.parent != null) {
+            for (int i = 0; i < searchSteps; i++) {
+                actionsList.add(curr.marioAction.value);
+            }
             curr = curr.parent;
-            actionsList.add(curr.marioAction.value);
         }
 
         //if (winFound)
         //    actionsList.add(0, )
+
+//        System.out.println("ITERATIONS: " + iterations + " | Best X: " + bestNode.state.getMarioX()
+//            + " | Number of actions: " + actionsList.size());
 
         return actionsList;
 
