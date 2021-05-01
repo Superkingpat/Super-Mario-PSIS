@@ -40,7 +40,7 @@ public class Agent implements IMarioAgentSlim {
 //            }
 //        }
 
-        AStarTree tree = new AStarTree(model, 2);
+        AStarTree tree = new AStarTree(model, 1);
         ArrayList<boolean[]> newActionsList = null;
         if (!AStarTree.winFound)
              newActionsList = tree.search(timer);
@@ -57,6 +57,7 @@ public class Agent implements IMarioAgentSlim {
         }
 
         if (actionsList.size() == 0) { //TODO means finished?
+            System.out.println("FINISHED");
             finished = true;
             return MarioAction.NO_ACTION.value;
         }

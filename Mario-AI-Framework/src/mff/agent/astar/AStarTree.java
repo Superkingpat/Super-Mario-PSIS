@@ -35,7 +35,8 @@ public class AStarTree {
     	marioYStart = startState.getMarioY();
     	
     	bestNode = getStartNode(startState);
-    	bestNodeCost = calculateCost(startState, bestNode.nodeDepth);
+    	bestNode.cost = calculateCost(startState, bestNode.nodeDepth);
+    	bestNodeCost = bestNode.cost;
     	
     	opened.add(bestNode);    		
     }
@@ -84,7 +85,42 @@ public class AStarTree {
         	iterations++;
             SearchNode current = opened.remove();
 
-            MarioForwardModelSlim nextState = current.state.clone();
+            if (current.cost < bestNodeCost) {
+                bestNode = current;
+                bestNodeCost = current.cost;
+            }
+
+            if (current.state.getGameStatusCode() == 1) {
+                bestNode = current;
+                System.out.print("WIN FOUND ");
+                winFound = true;
+                break;
+            }
+
+            //System.out.println(current.cost);
+            //System.out.println(current.state.getMarioX());
+
+            List<MarioAction> actions = Helper.getPossibleActions(current.state);
+            for (MarioAction action : actions) {
+                MarioForwardModelSlim newState = current.state.clone();
+                newState.advance(action.value);
+
+                float newStateCost = calculateCost(newState, current.nodeDepth + 1);
+
+                int newStateCode = getIntState(newState);
+                float newStateOldScore = visitedStates.getOrDefault(newStateCode, -1.0f);
+                if (newStateOldScore >= 0 && newStateCost >= newStateOldScore)
+                    continue;
+
+                if (newState.getWorld().mario.alive) {
+                    visitedStates.put(newStateCode, newStateCost);
+                    opened.add(getNewNode(newState, current, newStateCost, action));
+                }
+            }
+
+            //System.out.println(opened.size());
+
+            /*MarioForwardModelSlim nextState = current.state.clone();
 
             for (int i = 0; i < searchSteps; i++) {
                 nextState.advance(current.marioAction.value);
@@ -115,21 +151,13 @@ public class AStarTree {
             
             // NEW STATE or BETTER STATE
             visitedStates.put(nextStateInt, nextCost);
-            
-            List<MarioAction> actions = Helper.getPossibleActions(nextState);
-            for (MarioAction action : actions) {
-                //if (action == MarioAction.JUMP_RIGHT_SPEED)
-                //    opened.add(getNewNode(nextState, current, nextCost + 1, action));
-                //else
-                    opened.add(getNewNode(nextState, current, nextCost, action));
-            }
 
             if (nextState.getGameStatusCode() == 1) {
                 bestNode = current;
                 System.out.print("WIN FOUND ");
                 winFound = true;
                 break;
-            }
+            }*/
         }
 
         ArrayList<boolean[]> actionsList = new ArrayList<>();
