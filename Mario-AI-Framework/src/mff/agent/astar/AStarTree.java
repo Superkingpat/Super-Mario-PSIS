@@ -60,9 +60,9 @@ public class AStarTree {
         // check for Mario alive after advance
 
     	int marioState = nextState.getMarioMode() * 100 + (nextState.getWorld().mario.alive ? 0 : Integer.MIN_VALUE);
-    	int winBonus = nextState.getGameStatusCode() == 1 ? 1000 : 0;
+    	//int winBonus = nextState.getGameStatusCode() == 1 ? 1000 : 0;
 		return (nextState.getMarioX() - marioXStart) * 1.5f + marioState /*+ nextState.getWorld().currentTimer / 1000.0f*/
-                + (marioYStart - nextState.getMarioY()) + winBonus;
+                + (marioYStart - nextState.getMarioY()); // + winBonus;
 	}
     
     public ArrayList<boolean[]> search(MarioTimerSlim timer, int searchSteps) {

@@ -30,8 +30,8 @@ public class Agent implements IMarioAgentSlim {
             return MarioAction.NO_ACTION.value;
 
         AStarTree tree = new AStarTree(model);
-        ArrayList<boolean[]> newActionsList = tree.search(timer, 1);
-    
+        ArrayList<boolean[]> newActionsList = tree.search(timer, 2);
+
         if (newActionsList != null && newActionsList.size() > actionsList.size()) {
             actionsList = newActionsList;
         }
