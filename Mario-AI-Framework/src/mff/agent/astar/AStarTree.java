@@ -65,7 +65,7 @@ public class AStarTree {
                 + (marioYStart - nextState.getMarioY()) + winBonus;
 	}
     
-    public ArrayList<boolean[]> search(MarioTimerSlim timer) {
+    public ArrayList<boolean[]> search(MarioTimerSlim timer, int searchSteps) {
     	int iterations = 0;
 
     	if (winFound)
@@ -76,8 +76,10 @@ public class AStarTree {
             SearchNode current = opened.remove();
 
             MarioForwardModelSlim nextState = current.state.clone();
-            
-            nextState.advance(current.marioAction.value);
+
+            for (int i = 0; i < searchSteps; i++) {
+                nextState.advance(current.marioAction.value);
+            }
 
             float nextCost = calculateCost(nextState);
             int nextStateInt = getIntState(nextState);
@@ -101,14 +103,15 @@ public class AStarTree {
             
             List<MarioAction> actions = Helper.getPossibleActions(nextState);
             for (MarioAction action : actions) {
-                //if (action == MarioAction.JUMP_RIGHT_SPEED)
-                //    opened.add(getNewNode(nextState, current, nextCost + 1, action));
-                //else
+                if (action == MarioAction.JUMP_RIGHT_SPEED)
+                    opened.add(getNewNode(nextState, current, nextCost + 1, action));
+                else
                     opened.add(getNewNode(nextState, current, nextCost, action));
             }
 
             if (nextState.getGameStatusCode() == 1) {
                 System.out.print("WIN FOUND ");
+                //bestNode = getNewNode(nextState, current, nextCost, MarioAction.JUMP_RIGHT_SPEED);
                 winFound = true;
                 break;
             }
@@ -120,11 +123,15 @@ public class AStarTree {
 
         SearchNode curr = bestNode;
 
-        actionsList.add(curr.marioAction.value);
+        for (int i = 0; i < searchSteps; i++) {
+            actionsList.add(curr.marioAction.value);
+        }
 
         while (curr.parent != null) {
             curr = curr.parent;
-            actionsList.add(curr.marioAction.value);
+            for (int i = 0; i < searchSteps; i++) {
+                actionsList.add(curr.marioAction.value);
+            }
         }
 
         //if (winFound)
