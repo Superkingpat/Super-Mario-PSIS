@@ -9,7 +9,7 @@ import mff.agent.helper.MarioTimerSlim;
 import mff.forwardmodel.slim.core.MarioForwardModelSlim;
 
 public class AStarTree {
-    public SearchNode bestNode;
+    public SearchNode furthestNode;
     public float furthestNodeDistance;
 
     float marioXStart;
@@ -34,11 +34,11 @@ public class AStarTree {
     	marioXStart = startState.getMarioX();
     	marioYStart = startState.getMarioY();
     	
-    	bestNode = getStartNode(startState);
-    	bestNode.cost = calculateCost(startState, bestNode.nodeDepth);
-    	furthestNodeDistance = bestNode.state.getMarioX();
+    	furthestNode = getStartNode(startState);
+    	furthestNode.cost = calculateCost(startState, furthestNode.nodeDepth);
+    	furthestNodeDistance = furthestNode.state.getMarioX();
     	
-    	opened.add(bestNode);    		
+    	opened.add(furthestNode);
     }
     
     private int getIntState(MarioForwardModelSlim model) {
@@ -86,12 +86,12 @@ public class AStarTree {
             SearchNode current = opened.remove();
 
             if (current.state.getMarioX() > furthestNodeDistance) {
-                bestNode = current;
+                furthestNode = current;
                 furthestNodeDistance = current.state.getMarioX();
             }
 
             if (current.state.getGameStatusCode() == 1) {
-                bestNode = current;
+                furthestNode = current;
                 System.out.print("WIN FOUND ");
                 winFound = true;
                 break;
@@ -162,7 +162,7 @@ public class AStarTree {
 
         ArrayList<boolean[]> actionsList = new ArrayList<>();
 
-        SearchNode curr = bestNode;
+        SearchNode curr = furthestNode;
 
         //actionsList.add(curr.marioAction.value);
 

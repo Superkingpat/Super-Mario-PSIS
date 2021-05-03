@@ -27,8 +27,12 @@ public class Agent implements IMarioAgentSlim {
         action = tree.search(timer);
         return action;*/
 
-        if (finished)
-            return MarioAction.NO_ACTION.value;
+        if (finished) {
+            if (actionsList.size() == 0)
+                return MarioAction.NO_ACTION.value;
+            else
+                return actionsList.remove(actionsList.size() - 1);
+        }
 
 //        if (finished) { // TODO: finished state
 //            if (actionsList.size() > 0) {
@@ -45,6 +49,12 @@ public class Agent implements IMarioAgentSlim {
         if (!AStarTree.winFound)
              newActionsList = tree.search(timer);
 
+        if (AStarTree.winFound) {
+            actionsList = newActionsList;
+            finished = true;
+            return actionsList.remove(actionsList.size() - 1);
+        }
+
 //        if (AStarTree.winFound) { // TODO: set win path and dont change it
 //            actionsList = newActionsList;
 //            finished = true;
@@ -52,12 +62,13 @@ public class Agent implements IMarioAgentSlim {
 //        }
 
         if (newActionsList != null && newActionsList.size() > actionsList.size()) {
-            if (!AStarTree.winFound)
+            //if (!AStarTree.winFound)
                 actionsList = newActionsList;
         }
 
-        if (actionsList.size() == 0) { //TODO means finished?
-            System.out.println("FINISHED");
+        if (actionsList.size() == 0) {
+            System.out.println("NO ACTIONS LEFT!!!");
+            // TODO: needs solving
             finished = true;
             return MarioAction.NO_ACTION.value;
         }
