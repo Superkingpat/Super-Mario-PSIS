@@ -176,7 +176,7 @@ public class AStarTree {
         //if (winFound)
         //    actionsList.add(0, )
 
-//        System.out.println("ITERATIONS: " + iterations + " | Best X: " + bestNode.state.getMarioX()
+//        System.out.println("ITERATIONS: " + iterations + " | Best X: " + furthestNode.state.getMarioX()
 //            + " | Number of actions: " + actionsList.size());
 
         return actionsList;
