@@ -13,6 +13,7 @@ public class Agent implements IMarioAgentSlim {
     private ArrayList<boolean[]> actionsList = new ArrayList<>();
     //private boolean first = true;
     private boolean finished = false;
+    private float furthestDistance = -1;
 
     @Override
     public void initialize(MarioForwardModelSlim model) {
@@ -27,17 +28,32 @@ public class Agent implements IMarioAgentSlim {
         action = tree.search(timer);
         return action;*/
 
-        if (finished)
-            return MarioAction.NO_ACTION.value;
+        if (finished) {
+            if (actionsList.size() == 0)
+                return MarioAction.NO_ACTION.value;
+            else
+                return actionsList.remove(actionsList.size() - 1);
+        }
 
-        AStarTree tree = new AStarTree(model, 2);
+        AStarTree tree = new AStarTree(model, 1);
         ArrayList<boolean[]> newActionsList = tree.search(timer);
 
-        if (newActionsList != null && newActionsList.size() > actionsList.size()) {
+        if (tree.furthestNodeDistance > furthestDistance) {
+            furthestDistance = tree.furthestNodeDistance;
             actionsList = newActionsList;
         }
 
-        if (actionsList.size() == 0) { //TODO means finished?
+        if (AStarTree.winFound) {
+            actionsList = newActionsList;
+            finished = true;
+            return actionsList.remove(actionsList.size() - 1);
+        }
+
+//        if (newActionsList != null && tree.furthestNodeDistance > furthestDistance /*newActionsList.size() > actionsList.size()*/) {
+//            actionsList = newActionsList;
+//        }
+
+        if (actionsList.size() == 0) { //TODO
             finished = true;
             return MarioAction.NO_ACTION.value;
         }

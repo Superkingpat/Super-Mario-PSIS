@@ -9,8 +9,8 @@ import mff.agent.helper.MarioTimerSlim;
 import mff.forwardmodel.slim.core.MarioForwardModelSlim;
 
 public class AStarTree {
-    public SearchNode bestNode;
-    public float bestNodeCost;
+    public SearchNode furthestNode;
+    public float furthestNodeDistance;
 
     float marioXStart;
     float marioYStart;
@@ -34,10 +34,11 @@ public class AStarTree {
     	marioXStart = startState.getMarioX();
     	marioYStart = startState.getMarioY();
     	
-    	bestNode = getStartNode(startState);
-    	bestNodeCost = calculateCost(startState, bestNode.nodeDepth);
+    	furthestNode = getStartNode(startState);
+    	furthestNode.cost = calculateCost(startState, furthestNode.nodeDepth);
+    	furthestNodeDistance = furthestNode.state.getMarioX();
     	
-    	opened.add(bestNode);    		
+    	opened.add(furthestNode);
     }
     
     private int getIntState(MarioForwardModelSlim model) {
@@ -69,6 +70,7 @@ public class AStarTree {
 //                + (marioYStart - nextState.getMarioY()) + winBonus;
 
         float timeToFinish = (exitTileX - nextState.getMarioX()) / maxMarioSpeedX;
+        //timeToFinish *= 2;
         //System.out.println("DEPTH: " + nodeDepth + " | timeToFinish: " + timeToFinish);
         return nodeDepth + timeToFinish;
 	}
@@ -107,9 +109,9 @@ public class AStarTree {
                 }
             }
             
-            if (bestNodeCost > nextCost) {
-            	bestNode = current;
-            	bestNodeCost = nextCost;
+            if (furthestNodeDistance < current.state.getMarioX()) {
+            	furthestNode = current;
+            	furthestNodeDistance = current.state.getMarioX();
             }
             
             // NEW STATE or BETTER STATE
@@ -124,7 +126,7 @@ public class AStarTree {
             }
 
             if (nextState.getGameStatusCode() == 1) {
-                bestNode = current;
+                furthestNode = current;
                 System.out.print("WIN FOUND ");
                 winFound = true;
                 break;
@@ -133,7 +135,7 @@ public class AStarTree {
 
         ArrayList<boolean[]> actionsList = new ArrayList<>();
 
-        SearchNode curr = bestNode;
+        SearchNode curr = furthestNode;
 
         //actionsList.add(curr.marioAction.value);
 
@@ -147,7 +149,7 @@ public class AStarTree {
         //if (winFound)
         //    actionsList.add(0, )
 
-//        System.out.println("ITERATIONS: " + iterations + " | Best X: " + bestNode.state.getMarioX()
+//        System.out.println("ITERATIONS: " + iterations + " | Best X: " + furthestNode.state.getMarioX()
 //            + " | Number of actions: " + actionsList.size());
 
         return actionsList;
