@@ -15,6 +15,7 @@ public class Agent implements IMarioAgentMFF, IAgentBenchmark {
     public void initialize(MarioForwardModelSlim model) {
         this.action = new boolean[MarioActions.numberOfActions()];
         this.tree = new AStarTree();
+        AStarTree.exitTileX = model.getWorld().level.exitTileX * 16;
     }
 
     @Override

@@ -13,8 +13,11 @@ public class AStarTree {
     PriorityQueue<SearchNode> posPool;
     LinkedHashSet<Integer> visitedStates = new LinkedHashSet<>();
 
-    private ArrayList<boolean[]> currentActionPlan;
+    private boolean[] currentAction;
     int ticksBeforeReplanning = 0;
+
+    public static float exitTileX;
+    public static final float maxMarioSpeedX = 10.91f;
 
     public int nodesEvaluated = 0;
 
@@ -33,7 +36,7 @@ public class AStarTree {
                 return;
             }
             currentGood = false;
-            float realRemainingTime = current.simulatePos();
+            float realRemainingTime = current.remainingTime;
 
             if (realRemainingTime < 0) {
                 continue;
@@ -82,24 +85,18 @@ public class AStarTree {
         furthestPosition = startPos;
     }
 
-    private ArrayList<boolean[]> extractPlan() {
-        ArrayList<boolean[]> actions = new ArrayList<>();
-
+    private boolean[] extractPlan() {
         // just move forward if no best position exists
-        if (bestPosition == null) {
-            for (int i = 0; i < 10; i++) {
-                actions.add(fastRightMovement);
-            }
-            return actions;
-        }
+        if (bestPosition == null)
+            return fastRightMovement;
 
+        boolean[] result = null;
         SearchNode current = bestPosition;
         while (current.parentPos != null) {
-            for (int i = 0; i < current.repetitions; i++)
-                actions.add(0, current.action);
+            result = current.action;
             current = current.parentPos;
         }
-        return actions;
+        return (result != null) ? result : fastRightMovement;
     }
 
     private SearchNode pickBestPos(PriorityQueue<SearchNode> posPool) {
@@ -110,32 +107,15 @@ public class AStarTree {
     }
 
     public boolean[] optimise(MarioForwardModelSlim model, MarioTimerSlim timer) {
-        int planAhead = 3;
-        int stepsPerSearch = 2;
-        MarioForwardModelSlim originalModel = model.clone();
-        ticksBeforeReplanning--;
-        if (ticksBeforeReplanning <= 0 || currentActionPlan.size() == 0) {
-            currentActionPlan = extractPlan();
-            if (currentActionPlan.size() < planAhead) {
-                planAhead = currentActionPlan.size();
-            }
+        int stepsPerSearch = 3;
 
-            // simulate ahead to predicted future state, and then plan for this future state
-            for (int i = 0; i < planAhead; i++) {
-                model.advance(currentActionPlan.get(i));
-            }
-            startSearch(model, stepsPerSearch);
-            ticksBeforeReplanning = 3;
-        }
-        if (model.getGameStatusCode() == MarioWorldSlim.LOSE) {
-            startSearch(originalModel, stepsPerSearch);
-        }
+        startSearch(model, stepsPerSearch);
+
         search(timer);
 
-        boolean[] action = new boolean[5];
-        if (currentActionPlan.size() > 0)
-            action = currentActionPlan.remove(0);
-        return action;
+        currentAction = extractPlan();
+
+        return currentAction;
     }
 
     private void visited(int x, int y, int t) {

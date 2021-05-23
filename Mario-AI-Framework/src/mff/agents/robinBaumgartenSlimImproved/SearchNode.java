@@ -51,17 +51,34 @@ public class SearchNode {
             timeElapsed = parent.timeElapsed + repetitions;
         else
             timeElapsed = 0;
-        calculateCost();
+
+        if (parent != null) {
+            simulatePos();
+            calculateCost();
+        }
     }
 
     public void initializeRoot(MarioForwardModelSlim model) {
         if (this.parentPos == null) {
             this.sceneSnapshot = model.clone();
             this.remainingTimeEstimated = calcRemainingTime(model.getMarioX(), 0);
+
+            //simulate position
+            int marioDamage = 0;
+            remainingTime =
+                    calcRemainingTime(this.sceneSnapshot.getMarioX(), this.sceneSnapshot.getMarioFloatVelocity()[0]);
+            if (isInVisitedList)
+                remainingTime += Helper.visitedListPenalty;
+            hasBeenHurt = false;
+
+            // calculate cost
+            float timeToFinish = (AStarTree.exitTileX - this.sceneSnapshot.getMarioX()) / AStarTree.maxMarioSpeedX;
+            timeToFinish *= 1.1;
+            this.cost = timeElapsed + timeToFinish;
         }
     }
 
-    public float simulatePos() {
+    public void simulatePos() {
         this.sceneSnapshot = parentPos.sceneSnapshot.clone();
         for (int i = 0; i < repetitions; i++) {
             this.sceneSnapshot.advance(action);
@@ -73,8 +90,6 @@ public class SearchNode {
         if (isInVisitedList)
             remainingTime += Helper.visitedListPenalty;
         hasBeenHurt = marioDamage != 0;
-
-        return remainingTime;
     }
 
     public ArrayList<SearchNode> generateChildren() {
@@ -102,6 +117,10 @@ public class SearchNode {
     }
 
     public void calculateCost() {
-        this.cost = getRemainingTime() + timeElapsed * 0.9f;
+        //this.cost = getRemainingTime() + timeElapsed * 0.9f; // slightly bias towards furthest positions
+
+        float timeToFinish = (AStarTree.exitTileX - parentPos.sceneSnapshot.getMarioX()) / AStarTree.maxMarioSpeedX;
+        timeToFinish *= 1.1;
+        this.cost = timeElapsed + timeToFinish;
     }
 }

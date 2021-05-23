@@ -59,23 +59,23 @@ public class Helper {
 
     private static final ArrayList<boolean[]> actionsNoJump = new ArrayList<>() {{
         // right, right speed, left, left speed
-        add(new boolean[] { false, true, false, false, false });
+        //add(new boolean[] { false, true, false, false, false });
         add(new boolean[] { false, true, false, false, true });
-        add(new boolean[] { true, false, false, false, false });
+        //add(new boolean[] { true, false, false, false, false });
         add(new boolean[] { true, false, false, false, true });
     }};
 
     private static final ArrayList<boolean[]> actionsWithJump = new ArrayList<>() {{
         // right, right speed, left, left speed
-        add(new boolean[] { false, true, false, false, false });
+        //add(new boolean[] { false, true, false, false, false });
         add(new boolean[] { false, true, false, false, true });
-        add(new boolean[] { true, false, false, false, false });
+        //add(new boolean[] { true, false, false, false, false });
         add(new boolean[] { true, false, false, false, true });
         // jump, jump right, jump right speed, jump left, jump left speed
-        add(new boolean[] { false, false, false, true, false });
-        add(new boolean[] { false, true, false, true, false });
+        //add(new boolean[] { false, false, false, true, false });
+        //add(new boolean[] { false, true, false, true, false });
         add(new boolean[] { false, true, false, true, true });
-        add(new boolean[] { true, false, false, true, false });
+        //add(new boolean[] { true, false, false, true, false });
         add(new boolean[] { true, false, false, true, true });
     }};
 }
