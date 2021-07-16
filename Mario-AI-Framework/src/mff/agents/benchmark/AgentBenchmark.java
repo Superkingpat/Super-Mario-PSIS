@@ -28,10 +28,10 @@ public class AgentBenchmark {
 
     private static final ArrayList<String> agents = new ArrayList<>() {{
         add("astar");
-        add("astarDistanceMetric");
-        add("astarPlanningDynamic");
-        add("robinBaumgarten");
-        add("robinBaumgartenSlim");
+        //add("astarDistanceMetric");
+        //add("astarPlanningDynamic");
+        //add("robinBaumgarten");
+        //add("robinBaumgartenSlim");
     }};
 
     public static void main(String[] args) throws IOException {
@@ -43,8 +43,8 @@ public class AgentBenchmark {
 
             logWriter.write("level,win/fail,% travelled,run time,game ticks,planning time,total plannings,nodes evaluated\n");
 
-            warmup(agentType);
-            testOriginalLevels(agentType, logWriter);
+            //warmup(agentType);
+            //testOriginalLevels(agentType, logWriter);
             testKrysLevels(agentType, logWriter);
 
             logWriter.close();
@@ -54,17 +54,35 @@ public class AgentBenchmark {
     private static void testKrysLevels(String agentType, FileWriter log) throws IOException {
         AgentStats agentStats;
         if (!agentType.equals("robinBaumgarten")) {
+            FileWriter levelDumpWriter = null;
             for (int i = 1; i <= 100; i++) {
                 System.out.println(agentType + "-" + "krys" + "-" + i);
                 MarioLevelGenerator generator = new levelGenerators.krys.LevelGenerator(i);
                 String level = generator.getGeneratedLevel(new MarioLevelModel(150, 16),
                         new MarioTimer(5 * 60 * 60 * 1000));
-                AgentBenchmarkGame game = new AgentBenchmarkGame();
-                IMarioAgentMFF agent = getNewAgent(agentType);
+
+                File levelDump = new File ("levels" + File.separator + "krys" + File.separator + "lvl-" + i + ".txt");
+                if (levelDump.exists()) {
+                    if (!levelDump.delete()) {
+                        System.out.println("Can't delete file: " + levelDump.getName());
+                        System.exit(2);
+                    }
+                }
+                if (!levelDump.createNewFile()) {
+                    System.out.println("Can't create file: " + levelDump.getName());
+                    System.exit(2);
+                }
+
+                levelDumpWriter = new FileWriter(levelDump);
+                levelDumpWriter.write(level);
+                levelDumpWriter.close();
+
+                //AgentBenchmarkGame game = new AgentBenchmarkGame();
+                //IMarioAgentMFF agent = getNewAgent(agentType);
                 // only 30 seconds to speed-up timeout if agent is stuck
-                agentStats = game.runGame(agent, level, 30, 0, false);
-                agentStats.level = "Krys-" + i;
-                printStats(log, agentStats);
+                //agentStats = game.runGame(agent, level, 30, 0, false);
+                //agentStats.level = "Krys-" + i;
+                //printStats(log, agentStats);
             }
         }
         else {
