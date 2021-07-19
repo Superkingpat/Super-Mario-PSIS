@@ -43,7 +43,7 @@ public class AStarTree {
 
         opened.add(furthestNode);
     }
-
+// TODO: inits now the same?
     public void initPlanToFinish(MarioForwardModelSlim startState, int searchSteps) {
         this.searchSteps = searchSteps;
 
@@ -51,6 +51,8 @@ public class AStarTree {
 
         SearchNode startNode = getStartNode(startState);
         startNode.cost = calculateCostPlanToFinish(startState, startNode.nodeDepth);
+        furthestNodeDistance = startNode.state.getMarioX();
+        furthestNode = startNode;
 
         opened.add(startNode);
     }
@@ -73,14 +75,16 @@ public class AStarTree {
 
     private float calculateCostPlanAhead(MarioForwardModelSlim nextState, int nodeDepth) {
         float timeToFinish = (exitTileX - nextState.getMarioX()) / maxMarioSpeedX;
-        timeToFinish *= 1.5f;
+        timeToFinish *= 1.1f;
         return nodeDepth + timeToFinish;
+        // TODO: tweak
     }
-
+// TODO: doing the same now?
     private float calculateCostPlanToFinish(MarioForwardModelSlim nextState, int nodeDepth) {
         float timeToFinish = (exitTileX - nextState.getMarioX()) / maxMarioSpeedX;
         timeToFinish *= 1.1f;
         return nodeDepth + timeToFinish;
+        // TODO: tweak
     }
 
     public void planAhead(MarioTimerSlim timer) {
@@ -99,7 +103,7 @@ public class AStarTree {
                 furthestNode = current;
                 furthestNodeDistance = current.state.getMarioX();
 
-                if (furthestNode.nodeDepth * searchSteps > 40)
+                if (furthestNode.nodeDepth * searchSteps > 90) // TODO: tweak
                     return;
             }
 
@@ -126,7 +130,7 @@ public class AStarTree {
             }
         }
     }
-
+// TODO: plan methods now equal?
     public void planToFinish(MarioTimerSlim timer) {
         while (opened.size() > 0 && timer.getRemainingTime() > 0) {
             SearchNode current = opened.remove();
@@ -138,6 +142,11 @@ public class AStarTree {
                 //System.out.println("Win depth: " + winNode.nodeDepth);
                 winFound = true;
                 return;
+            }
+
+            if (current.state.getMarioX() > furthestNodeDistance) {
+                furthestNode = current;
+                furthestNodeDistance = current.state.getMarioX();
             }
 
             ArrayList<MarioAction> actions = Helper.getPossibleActions(current.state);
@@ -162,12 +171,38 @@ public class AStarTree {
                 opened.add(getNewNode(newState, current, newStateCost, action));
             }
         }
+        // TODO: use these actions, but only to a safe position
 //        System.out.println("ITERATIONS: " + iterations + " | OPENED SIZE: " + opened.size());
     }
 
     private boolean isSafe(SearchNode nodeToTest) {
         return nodeToTest.state.getWorld().mario.onGround;
     }
+
+//    private boolean isSafe(SearchNode nodeToTest) {
+//        if (nodeToTest.state.getWorld().mario.onGround)
+//            return true;
+//        int marioX = (int) (nodeToTest.state.getMarioX()) / 16;
+//        int marioY = (int) (nodeToTest.state.getMarioY()) / 16;
+//        var level = nodeToTest.state.getWorld().level;
+//        int levelHeight = MarioWorldSlim.marioGameHeight / 16;
+//        for (int y = marioY; y < levelHeight; y++) {
+//            byte block = level.getBlockValue(marioX, y);
+//            if (isBlockSafe(block))
+//                return true;
+//        }
+//        return false;
+//    }
+
+// TODO: add a check for spiky and enemy flower?
+
+//    private boolean isBlockSafe(byte block) {
+//        return block != 0 &&  // empty
+//                block != 15 && // coin
+//                block != 47 && // background
+//                block != 48 && // invisible life block
+//                block != 49;   // invisible coin block
+//    }
 
     public ArrayList<boolean[]> getTempSafePlan() {
         ArrayList<boolean[]> actionPlan = new ArrayList<>();

@@ -41,13 +41,25 @@ public class Agent implements  IMarioAgentMFF, IAgentBenchmark {
         }
 
         if (actionsList.size() == 0) {
+            if (tree != null) { // planToFinish time ran out
+                actionsList = tree.getTempSafePlan();
+                if (actionsList.size() == 1 && actionsList.get(0) == MarioAction.NO_ACTION.value) {
+                    findTempPlan = true;
+                } else {
+                    findTempPlan = false;
+                    startNewFinishSearch = true;
+                    assert actionsList.size() != 0;
+                    //System.out.println("list from finish search, size: " + actionsList.size());
+                    return actionsList.remove(actionsList.size() - 1);
+                }
+            }
             findTempPlan = true;
         }
 
         if (findTempPlan) {
             findTempPlan = false;
             AStarTree tree = new AStarTree();
-            tree.initPlanAhead(model, 3);
+            tree.initPlanAhead(model, 3); // TODO tweak
             tree.planAhead(timer);
             totalSearchCalls++;
             totalNodesEvaluated += tree.nodesEvaluated;
@@ -61,6 +73,7 @@ public class Agent implements  IMarioAgentMFF, IAgentBenchmark {
             }
             startNewFinishSearch = true;
             assert actionsList.size() != 0;
+            //System.out.println("list from temp plan, size: " + actionsList.size());
             return actionsList.remove(actionsList.size() - 1);
         }
 
@@ -71,7 +84,7 @@ public class Agent implements  IMarioAgentMFF, IAgentBenchmark {
             for (int i = 0; i < actionsList.size(); i++) {
                 model.advance(actionsList.get(actionsList.size() - (1 + i)));
             }
-            tree.initPlanToFinish(model, 2);
+            tree.initPlanToFinish(model, 3); // TODO tweak
         }
 
         assert tree != null;
@@ -81,6 +94,7 @@ public class Agent implements  IMarioAgentMFF, IAgentBenchmark {
         totalNodesEvaluated += tree.nodesEvaluated;
         tree.nodesEvaluated = 0; // reset counter
 
+        //System.out.println("using action from buffer, size: " + actionsList.size());
         return actionsList.remove(actionsList.size() - 1);
     }
 
