@@ -1,5 +1,6 @@
 package mff.agents.common;
 
+import engine.core.MarioGame;
 import engine.core.MarioLevelGenerator;
 import engine.core.MarioLevelModel;
 import engine.core.MarioTimer;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 
 public class AgentMain {
     private static String getLevel(String filepath) {
+        System.out.println(filepath);
         String content = "";
         try {
             content = new String(Files.readAllBytes(Paths.get(filepath)));
@@ -28,16 +30,43 @@ public class AgentMain {
         return content;
     }
 
+    private static IMarioAgentMFF getNewAgent(String agentType) {
+        switch (agentType) {
+            case "astar":
+                return new mff.agents.astar.Agent();
+            case "astarDistanceMetric":
+                return new mff.agents.astarDistanceMetric.Agent();
+            case "astarPlanningDynamic":
+                return new mff.agents.astarPlanningDynamic.Agent();
+            case "astarWindow":
+                return new mff.agents.astarWindow.Agent();
+            case "robinBaumgartenSlim":
+                return new mff.agents.robinBaumgartenSlim.Agent();
+            case "robinBaumgartenSlimImproved":
+                return new mff.agents.robinBaumgartenSlimImproved.Agent();
+            case "robinBaumgartenSlimWindowAdvance":
+                return new mff.agents.robinBaumgartenSlimWindowAdvance.Agent();
+            default:
+                throw new IllegalArgumentException("Agent not supported.");
+        }
+    }
+
     public static void main(String[] args) {
-        //testLevel();
-        testAllOriginalLevels();
+        if (args[0].equals("robinBaumgarten")) {
+            MarioGame game = new MarioGame();
+            game.runGame(new agents.robinBaumgarten.Agent(), getLevel("./" + args[1] + "/lvl-" + args[2] + ".txt"),
+                    200, 0, true);
+        }
+        else
+            testLevel(getNewAgent(args[0]), args[1], args[2]);
+        //testAllOriginalLevels();
         //testGeneratedLevels();
         //testAllAgents();
     }
 
-    private static void testLevel() {
+    private static void testLevel(IMarioAgentMFF agent, String levelType, String levelNum) {
         AgentMarioGame game = new AgentMarioGame();
-        game.runGame(new mff.agents.astarWindow.Agent(), getLevel("./levels/original/lvl-10.txt"),
+        game.runGame(agent, getLevel("./" + levelType + "/lvl-" + levelNum + ".txt"),
                 200, 0, true);
     }
 
