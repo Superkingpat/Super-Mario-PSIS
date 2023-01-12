@@ -56,7 +56,7 @@ public class AgentBenchmark {
         }
 //        for (String level : levels) {
             for (var agentType : agents) {
-                File log = prepareLog("agent-benchmark" + File.separator + agentType + "-" + /*level*/"krys" + ".csv");
+                File log = prepareLog("agent-benchmark" + File.separator + agentType + "-" + /*level*/"krys" + "-" + AStarTree.nodeDepthWeight + ".csv");
                 if (log == null)
                     return;
                 FileWriter logWriter = new FileWriter(log);
