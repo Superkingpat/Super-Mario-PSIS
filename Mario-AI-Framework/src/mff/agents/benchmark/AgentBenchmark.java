@@ -4,6 +4,7 @@ import engine.core.MarioAgent;
 import engine.core.MarioLevelGenerator;
 import engine.core.MarioLevelModel;
 import engine.core.MarioTimer;
+import mff.agents.astar.AStarTree;
 import mff.agents.common.IMarioAgentMFF;
 
 import java.io.File;
@@ -27,11 +28,11 @@ public class AgentBenchmark {
     }
 
     private static final ArrayList<String> agents = new ArrayList<>() {{
-        add("robinBaumgarten");
-        add("robinBaumgartenSlimWindowAdvance");
+//        add("robinBaumgarten");
+//        add("robinBaumgartenSlimWindowAdvance");
         add("astar");
-        add("astarPlanningDynamic");
-        add("astarWindow");
+//        add("astarPlanningDynamic");
+//        add("astarWindow");
     }};
 
     private static final ArrayList<String> levels = new ArrayList<>() {{
@@ -47,23 +48,30 @@ public class AgentBenchmark {
     }};
 
     public static void main(String[] args) throws IOException {
-        for (String level : levels) {
+        try {
+            AStarTree.nodeDepthWeight = Float.parseFloat(args[0]);
+        } catch (Exception e) {
+            System.out.println("nodeDepthWeight not set successfully");
+            throw e;
+        }
+//        for (String level : levels) {
             for (var agentType : agents) {
-                File log = prepareLog("agent-benchmark" + File.separator + agentType + "-" + level + ".csv");
+                File log = prepareLog("agent-benchmark" + File.separator + agentType + "-" + /*level*/"krys" + ".csv");
                 if (log == null)
                     return;
                 FileWriter logWriter = new FileWriter(log);
 
+                logWriter.write("running with node depth weight: " + AStarTree.nodeDepthWeight);
                 logWriter.write("level,win/fail,% travelled,run time,game ticks,planning time,total plannings,nodes evaluated\n");
 
                 warmup(agentType);
-                //testOriginalLevels(agentType, logWriter);
-                //testKrysLevels(agentType, logWriter);
-                testFrameworkLevels(agentType, logWriter, level);
+//                testOriginalLevels(agentType, logWriter);
+                testKrysLevels(agentType, logWriter);
+//                testFrameworkLevels(agentType, logWriter, level);
 
                 logWriter.close();
             }
-        }
+//        }
     }
 
     private static void testFrameworkLevels(String agentType, FileWriter log, String levelsName) throws IOException {
@@ -181,6 +189,14 @@ public class AgentBenchmark {
     }
 
     private static File prepareLog(String name) throws IOException {
+        File agentBenchmarkFolder = new File("agent-benchmark");
+        if (!agentBenchmarkFolder.exists()) {
+            if (!agentBenchmarkFolder.mkdir()) {
+                System.out.println("Can't create folder: " + agentBenchmarkFolder.getName());
+                return null;
+            }
+        }
+
         File log = new File(name);
         if (log.exists()) {
             if (!log.delete()) {

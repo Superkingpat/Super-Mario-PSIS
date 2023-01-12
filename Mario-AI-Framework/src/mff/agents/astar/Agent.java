@@ -1,6 +1,7 @@
 package mff.agents.astar;
 
 import mff.agents.benchmark.IAgentBenchmark;
+import mff.agents.benchmark.IParameterizable;
 import mff.agents.common.IMarioAgentMFF;
 import mff.agents.astarHelper.MarioAction;
 import mff.agents.common.MarioTimerSlim;
@@ -8,7 +9,7 @@ import mff.forwardmodel.slim.core.MarioForwardModelSlim;
 
 import java.util.ArrayList;
 
-public class Agent implements IMarioAgentMFF, IAgentBenchmark {
+public class Agent implements IMarioAgentMFF, IAgentBenchmark, IParameterizable {
 
     private ArrayList<boolean[]> actionsList = new ArrayList<>();
     private float furthestDistance = -1;
@@ -20,6 +21,11 @@ public class Agent implements IMarioAgentMFF, IAgentBenchmark {
     public void initialize(MarioForwardModelSlim model) {
         AStarTree.winFound = false;
         AStarTree.exitTileX = model.getWorld().level.exitTileX * 16;
+    }
+
+    @Override
+    public void setNodeDepthWeight(float weight) {
+        AStarTree.nodeDepthWeight = weight;
     }
 
     @Override
