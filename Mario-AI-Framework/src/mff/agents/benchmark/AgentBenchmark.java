@@ -50,18 +50,20 @@ public class AgentBenchmark {
     public static void main(String[] args) throws IOException {
         try {
             AStarTree.nodeDepthWeight = Float.parseFloat(args[0]);
+            AStarTree.timeToFinishWeight = Float.parseFloat(args[1]);
         } catch (Exception e) {
-            System.out.println("nodeDepthWeight not set successfully");
+            System.out.println("nodeDepthWeight or timeToFinishWeight not set successfully");
             throw e;
         }
 //        for (String level : levels) {
             for (var agentType : agents) {
-                File log = prepareLog("agent-benchmark" + File.separator + agentType + "-" + /*level*/"krys" + "-" + AStarTree.nodeDepthWeight + ".csv");
+                File log = prepareLog("agent-benchmark" + File.separator + agentType + "-krys-"
+                        + "NDW-" + AStarTree.nodeDepthWeight + "-TTFW-" + AStarTree.timeToFinishWeight + ".csv");
                 if (log == null)
                     return;
                 FileWriter logWriter = new FileWriter(log);
 
-                logWriter.write("running with node depth weight: " + AStarTree.nodeDepthWeight);
+                logWriter.write("running with node depth weight: " + AStarTree.nodeDepthWeight + " and time to finish weight: " + AStarTree.timeToFinishWeight + "\n");
                 logWriter.write("level,win/fail,% travelled,run time,game ticks,planning time,total plannings,nodes evaluated\n");
 
                 warmup(agentType);
@@ -105,7 +107,7 @@ public class AgentBenchmark {
     private static void testKrysLevels(String agentType, FileWriter log) throws IOException {
         AgentStats agentStats;
         if (!agentType.equals("robinBaumgarten")) {
-            for (int i = 1; i <= 1; i++) {
+            for (int i = 1; i <= 100; i++) {
                 System.out.println(agentType + "-" + "krys" + "-" + i);
                 MarioLevelGenerator generator = new levelGenerators.krys.LevelGenerator(i);
                 String level = generator.getGeneratedLevel(new MarioLevelModel(150, 16),

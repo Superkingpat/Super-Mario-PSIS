@@ -25,6 +25,7 @@ public class AStarTree {
     public int nodesEvaluated = 0;
 
     public static float nodeDepthWeight;
+    public static float timeToFinishWeight;
 
     PriorityQueue<SearchNode> opened = new PriorityQueue<>(new CompareByCost());
     /**
@@ -64,8 +65,7 @@ public class AStarTree {
     
     private float calculateCost(MarioForwardModelSlim nextState, int nodeDepth) {
         float timeToFinish = (exitTileX - nextState.getMarioX()) / maxMarioSpeedX;
-        timeToFinish *= 1.1;
-        return nodeDepth * nodeDepthWeight + timeToFinish;
+        return nodeDepth * nodeDepthWeight + timeToFinish * timeToFinishWeight;
 	}
     
     public ArrayList<boolean[]> search(MarioTimerSlim timer) {
