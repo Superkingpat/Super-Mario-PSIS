@@ -112,7 +112,6 @@ public class AgentBenchmark {
 //                MarioLevelGenerator generator = new levelGenerators.krys.LevelGenerator(i);
 //                String level = generator.getGeneratedLevel(new MarioLevelModel(150, 16),
 //                        new MarioTimer(5 * 60 * 60 * 1000));
-                System.out.println(System.getProperty("user.dir"));
                 String level = getLevel("./levels/krys/lvl-" + i + ".txt");
                 AgentBenchmarkGame game = new AgentBenchmarkGame();
                 IMarioAgentMFF agent = getNewAgent(agentType);
