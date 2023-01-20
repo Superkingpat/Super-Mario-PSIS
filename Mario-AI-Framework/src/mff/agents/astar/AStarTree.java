@@ -24,8 +24,8 @@ public class AStarTree {
 
     public int nodesEvaluated = 0;
 
-    public static float nodeDepthWeight;
-    public static float timeToFinishWeight;
+    public static float nodeDepthWeight = 1f;
+    public static float timeToFinishWeight = 1.1f;
 
     PriorityQueue<SearchNode> opened = new PriorityQueue<>(new CompareByCost());
     /**

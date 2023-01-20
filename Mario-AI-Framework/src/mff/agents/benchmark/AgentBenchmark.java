@@ -109,9 +109,11 @@ public class AgentBenchmark {
         if (!agentType.equals("robinBaumgarten")) {
             for (int i = 1; i <= 100; i++) {
                 System.out.println(agentType + "-" + "krys" + "-" + i);
-                MarioLevelGenerator generator = new levelGenerators.krys.LevelGenerator(i);
-                String level = generator.getGeneratedLevel(new MarioLevelModel(150, 16),
-                        new MarioTimer(5 * 60 * 60 * 1000));
+//                MarioLevelGenerator generator = new levelGenerators.krys.LevelGenerator(i);
+//                String level = generator.getGeneratedLevel(new MarioLevelModel(150, 16),
+//                        new MarioTimer(5 * 60 * 60 * 1000));
+                System.out.println(System.getProperty("user.dir"));
+                String level = getLevel("./levels/krys/lvl-" + i + ".txt");
                 AgentBenchmarkGame game = new AgentBenchmarkGame();
                 IMarioAgentMFF agent = getNewAgent(agentType);
                 // only 30 seconds to speed-up timeout if agent is stuck
