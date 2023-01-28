@@ -63,7 +63,9 @@ public class AgentBenchmark {
                     return;
                 FileWriter logWriter = new FileWriter(log);
 
-                logWriter.write("running with node depth weight: " + AStarTree.nodeDepthWeight + " and time to finish weight: " + AStarTree.timeToFinishWeight + "\n");
+//                logWriter.write("running with node depth weight: " + AStarTree.nodeDepthWeight + " and time to finish weight: " + AStarTree.timeToFinishWeight + "\n");
+                logWriter.write("ndw:" + AStarTree.nodeDepthWeight + "\n");
+                logWriter.write("ttfw:" + AStarTree.timeToFinishWeight + "\n");
                 logWriter.write("level,win/fail,% travelled,run time,game ticks,planning time,total plannings,nodes evaluated\n");
 
                 warmup(agentType);
