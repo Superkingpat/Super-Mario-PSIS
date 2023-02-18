@@ -1,7 +1,6 @@
 package mff.agents.astar;
 
 import mff.agents.benchmark.IAgentBenchmark;
-import mff.agents.benchmark.IParameterizable;
 import mff.agents.common.IMarioAgentMFF;
 import mff.agents.astarHelper.MarioAction;
 import mff.agents.common.MarioTimerSlim;
