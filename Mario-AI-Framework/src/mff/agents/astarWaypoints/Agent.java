@@ -39,7 +39,7 @@ public class Agent implements IMarioAgentMFF, IAgentBenchmark, IGridHeuristic, I
             if (waypointsSpacing < AStarTree.WAYPOINT_DENSITY)
                 continue;
 
-            AStarTree.waypoints.add(new AStarTree.Waypoint(node.tileX * 16, node.tileY * 16));
+            AStarTree.waypoints.add(new AStarTree.Waypoint(node.tileX * 16, node.tileY * 16 + 8));
             waypointsSpacing = 0;
         }
         AStarTree.Waypoint lastIncludedWaypoint = AStarTree.waypoints.get(AStarTree.waypoints.size() - 1);
