@@ -1,5 +1,6 @@
 ### Related papers
 [Super Mario A-Star Agent Reloaded](https://ieeexplore.ieee.org/document/11272516) [(DOI)](https://doi.org/10.1109/ICTAI66417.2025.00190)
+
 [Super Mario A-Star Agent Revisited](https://ieeexplore.ieee.org/document/9643319) [(DOI)](https://doi.org/10.1109/ICTAI52525.2021.00161)
 
 ### Introduction
