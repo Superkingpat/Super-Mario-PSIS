@@ -3,3 +3,4 @@ out
 *.iml
 Mario-AI-Framework/agent-benchmark
 Mario-AI-Framework/clone-benchmark
+*.class
