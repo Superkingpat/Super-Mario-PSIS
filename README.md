@@ -1,14 +1,17 @@
 ### Related papers
+
 [Super Mario A-Star Agent Reloaded](https://ieeexplore.ieee.org/document/11272516) [(DOI)](https://doi.org/10.1109/ICTAI66417.2025.00190)
 
 [Super Mario A-Star Agent Revisited](https://ieeexplore.ieee.org/document/9643319) [(DOI)](https://doi.org/10.1109/ICTAI52525.2021.00161)
 
 ### Introduction
+
 This project is based on the framework created by [Ahmed Khalifa](https://scholar.google.com/citations?user=DRcyg5kAAAAJ&hl=en), which can be found [here](https://github.com/amidos2006/Mario-AI-Framework). As a part of my bachelor thesis, I created a better forward model for this framework, and to prove its functionality, I built a few intelligent agents on top of it.
 
 The work on this project was continued as a part of my diploma thesis, where I created even better agents, especially the `astarGrid` agent (also referred to as `MFF A* Grid`) and the `astarWaypoints` (`MFF A* Waypoints`) agent.
 
 ### Requirements
+
 I tried to support different working directory settings of various IDEs. It is guaranteed to work with working directory set in the `Mario-AI-Framework` folder, which contains folders such as `src` and `levels`. Java OpenJDK 17 might be required, but the framework probably runs on earlier versions too.
 
 ### Project overview
@@ -20,7 +23,7 @@ I tried to support different working directory settings of various IDEs. It is g
   - `agents` - agents from the framework mostly created during competitions
   - `engine` - original game implementation and forward model
   - `levelGenerators`
-    -  generators from the framework mostly created during competitions
+    - generators from the framework mostly created during competitions
     - the `krys` and `noiseBased` generators were created by MFF UK students Jan Holan and Mikuláš Hrdlička as a part of the Procedural Content Generation course
   - `mff` - the source code of our works
     - `agents` - all of the agents + a benchmark environment for them; also contains an implementation of the grid search
@@ -73,6 +76,7 @@ If you want to run only a part of the experiment locally, just run the `AgentBen
 The results that you obtain while running experiments might differ from the ones stated in our works. The reason is that the agents' performance is influenced by the hardware capabilities that they are run on. To obtain interpretable results, make sure to run all agents that you compare on the same hardware, the relative results should stay the same.
 
 ### Copyrights
+
 This framework is not endorsed by Nintendo and is only intended for research purposes. Mario is a Nintendo character which the authors don't own any rights to. Nintendo is also the sole owner of all the graphical assets in the game. Any use of this framework is expected to be on a non-commercial basis. The framework updates were created by David Šosvald as a bachelor and a master thesis at the Faculty of Mathematics and Physics of Charles University. The framework was created by [Ahmed Khalifa](https://scholar.google.com/citations?user=DRcyg5kAAAAJ&hl=en), based on the original Mario AI Framework by [Sergey Karakovskiy](https://scholar.google.se/citations?user=6cEAqn8AAAAJ&hl=en), [Noor Shaker](https://scholar.google.com/citations?user=OK9tw1AAAAAJ&hl=en), and [Julian Togelius](https://scholar.google.com/citations?user=lr4I9BwAAAAJ&hl=en), which in turn was based on [Infinite Mario Bros](https://fantendo.fandom.com/wiki/Infinite_Mario_Bros.) by Markus Persson.
 
 ### Contact
