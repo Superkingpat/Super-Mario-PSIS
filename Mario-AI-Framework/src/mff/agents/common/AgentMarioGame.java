@@ -40,14 +40,22 @@ public class AgentMarioGame {
     }
 
     public void runGame(IMarioAgentMFF agent, String level, int timer, int marioState, boolean visuals, int fps, float scale) {
+        runGame(agent, level, timer, marioState, visuals, fps, scale, null, null);
+    }
+
+    public void runGame(IMarioAgentMFF agent, String level, int timer, int marioState, boolean visuals, int fps,
+                        float scale, String windowTitle, Point windowPosition) {
         JFrame window = null;
         if (visuals) {
-            window = new JFrame("Mario AI Framework");
+            window = new JFrame(windowTitle == null ? "Mario AI Framework" : windowTitle);
             this.render = new MarioRender(scale);
             window.setContentPane(this.render);
             window.pack();
             window.setResizable(false);
             window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            if (windowPosition != null) {
+                window.setLocation(windowPosition);
+            }
             this.render.init();
             window.setVisible(true);
         }
