@@ -6,6 +6,10 @@ import engine.core.MarioResult;
 import engine.core.MarioTimer;
 import engine.core.MarioWorld;
 import engine.helper.MarioActions;
+import mff.agents.common.IMarioAgentMFF;
+import mff.agents.common.MarioTimerSlim;
+import mff.forwardmodel.common.Converter;
+import mff.forwardmodel.slim.core.MarioForwardModelSlim;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -21,6 +25,17 @@ public class PythonSocketAgent implements MarioAgent, AutoCloseable {
     private final String host;
     private final int port;
     private final int readTimeoutMs;
+
+    private static final long ASTAR_ACTION_BUDGET_MS = 33;
+    private static final int SLIM_CUTOUT_TILE_WIDTH = 27;
+
+    private static final String ASTAR_ID_RB = "rb";
+    private static final String ASTAR_ID_RB2009 = "rb2009";
+    private static final String ASTAR_ID_MFF_ASTAR = "mff_astar";
+    private static final String ASTAR_ID_MFF_ASTAR_PLANNING_DYNAMIC = "mff_astar_planning_dynamic";
+    private static final String ASTAR_ID_MFF_ASTAR_WINDOW = "mff_astar_window";
+    private static final String ASTAR_ID_MFF_RB_SLIM_WINDOW_ADVANCE = "mff_rb_slim_window_advance";
+
 
     private Socket socket;
     private BufferedReader reader;
@@ -58,10 +73,11 @@ public class PythonSocketAgent implements MarioAgent, AutoCloseable {
             float[] vel = model.getMarioFloatVelocity();
             String enemies = serializeTriples(model.getEnemiesFloatPosAndType());
             String sprites = serializeTriples(model.getSpritesFloatPosAndType());
-                String marioScene = serializeGrid(model.getMarioSceneObservation(0));
+            String marioScene = serializeGrid(model.getMarioSceneObservation(0));
+            String aStarActions = serializeAStarActions(model);
             String message = String.format(
                     Locale.US,
-                    "STEP\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%b\t%b\t%b\t%d\t%.5f\t%s\t%s\t%s\t%s",
+                    "STEP\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%b\t%b\t%b\t%d\t%.5f\t%s\t%s\t%s\t%s\t%s",
                     stepCounter,
                     pos[0],
                     pos[1],
@@ -76,7 +92,8 @@ public class PythonSocketAgent implements MarioAgent, AutoCloseable {
                     model.getGameStatus().name(),
                     enemies,
                     sprites,
-                    marioScene
+                    marioScene,
+                    aStarActions
             );
             sendLine(message);
             String response = reader.readLine();
@@ -168,6 +185,91 @@ public class PythonSocketAgent implements MarioAgent, AutoCloseable {
             if (normalized.equals("J")) actions[MarioActions.JUMP.getValue()] = true;
         }
         return actions;
+    }
+
+    private String serializeAStarActions(MarioForwardModel model) {
+        StringBuilder sb = new StringBuilder();
+        appendAStarAction(sb, ASTAR_ID_RB, getRbAction(model, new agents.robinBaumgarten.Agent()));
+        appendAStarAction(sb, ASTAR_ID_RB2009, getRb2009Action(model, new agents.robinBaumgarten2009.AStarAgent()));
+        appendAStarAction(sb, ASTAR_ID_MFF_ASTAR, getMffAction(model, new mff.agents.astar.Agent()));
+        appendAStarAction(sb, ASTAR_ID_MFF_ASTAR_PLANNING_DYNAMIC, getMffAction(model, new mff.agents.astarPlanningDynamic.Agent()));
+        appendAStarAction(sb, ASTAR_ID_MFF_ASTAR_WINDOW, getMffAction(model, new mff.agents.astarWindow.Agent()));
+        appendAStarAction(sb, ASTAR_ID_MFF_RB_SLIM_WINDOW_ADVANCE, getMffAction(model, new mff.agents.robinBaumgartenSlimWindowAdvance.Agent()));
+
+        if (sb.length() == 0) {
+            return "-";
+        }
+        return sb.toString();
+    }
+
+    private void appendAStarAction(StringBuilder sb, String id, boolean[] action) {
+        if (action == null) {
+            return;
+        }
+        if (sb.length() > 0) {
+            sb.append(';');
+        }
+        sb.append(id).append('=').append(formatActionBits(action));
+    }
+
+    private String formatActionBits(boolean[] action) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < MarioActions.numberOfActions(); i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+            boolean value = action != null && action.length > i && action[i];
+            sb.append(value ? '1' : '0');
+        }
+        return sb.toString();
+    }
+
+    private boolean[] getRbAction(MarioForwardModel model, agents.robinBaumgarten.Agent agent) {
+        MarioForwardModel snapshot = model.clone();
+        try {
+            agent.initialize(snapshot.clone(), new MarioTimer(ASTAR_ACTION_BUDGET_MS));
+            return agent.getActions(snapshot, new MarioTimer(ASTAR_ACTION_BUDGET_MS));
+        } catch (RuntimeException ex) {
+            return new boolean[MarioActions.numberOfActions()];
+        }
+    }
+
+    private boolean[] getRb2009Action(MarioForwardModel model, agents.robinBaumgarten2009.AStarAgent agent) {
+        MarioForwardModel snapshot = model.clone();
+        try {
+            agent.initialize(snapshot.clone(), new MarioTimer(ASTAR_ACTION_BUDGET_MS));
+            boolean[] raw = agent.getActions(snapshot, new MarioTimer(ASTAR_ACTION_BUDGET_MS));
+            return normalizeRb2009Action(raw);
+        } catch (RuntimeException ex) {
+            return new boolean[MarioActions.numberOfActions()];
+        }
+    }
+
+    private boolean[] normalizeRb2009Action(boolean[] raw) {
+        boolean[] mapped = new boolean[MarioActions.numberOfActions()];
+        if (raw == null) {
+            return mapped;
+        }
+        int maxIndex = agents.robinBaumgarten2009.astar.sprites.Mario.KEY_SPEED;
+        if (raw.length <= maxIndex) {
+            return mapped;
+        }
+        mapped[MarioActions.LEFT.getValue()] = raw[agents.robinBaumgarten2009.astar.sprites.Mario.KEY_LEFT];
+        mapped[MarioActions.RIGHT.getValue()] = raw[agents.robinBaumgarten2009.astar.sprites.Mario.KEY_RIGHT];
+        mapped[MarioActions.DOWN.getValue()] = raw[agents.robinBaumgarten2009.astar.sprites.Mario.KEY_DOWN];
+        mapped[MarioActions.JUMP.getValue()] = raw[agents.robinBaumgarten2009.astar.sprites.Mario.KEY_JUMP];
+        mapped[MarioActions.SPEED.getValue()] = raw[agents.robinBaumgarten2009.astar.sprites.Mario.KEY_SPEED];
+        return mapped;
+    }
+
+    private boolean[] getMffAction(MarioForwardModel model, IMarioAgentMFF agent) {
+        try {
+            MarioForwardModelSlim slimModel = Converter.originalToSlim(model.clone(), SLIM_CUTOUT_TILE_WIDTH);
+            agent.initialize(slimModel.clone());
+            return agent.getActions(slimModel.clone(), new MarioTimerSlim(ASTAR_ACTION_BUDGET_MS));
+        } catch (RuntimeException ex) {
+            return new boolean[MarioActions.numberOfActions()];
+        }
     }
 
     private boolean isTruthy(String token) {
