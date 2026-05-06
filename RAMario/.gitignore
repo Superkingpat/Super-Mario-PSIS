@@ -1,3 +1,5 @@
 
 PPO/models/latestmodel.zip
 .DS_Store
+.venv*
+__pycache__/

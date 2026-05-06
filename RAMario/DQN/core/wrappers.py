@@ -6,6 +6,32 @@ from gym.spaces import Box
 from nes_py.wrappers import JoypadSpace
 
 
+class SafeMonitor(wrappers.Monitor):
+    def __init__(self, env, directory, video_callable=None, force=False, resume=False,
+                 write_upon_reset=False, uid=None, mode=None):
+        super(SafeMonitor, self).__init__(
+            env,
+            directory,
+            video_callable=video_callable,
+            force=force,
+            resume=resume,
+            write_upon_reset=write_upon_reset,
+            uid=uid,
+            mode=mode,
+        )
+        self._closed = False
+
+    def close(self):
+        if self._closed:
+            return
+        self._closed = True
+        try:
+            super(SafeMonitor, self).close()
+        except ValueError as exc:
+            if 'already been closed' not in str(exc):
+                raise
+
+
 class FrameDownsample(ObservationWrapper):
     def __init__(self, env):
         super(FrameDownsample, self).__init__(env)
@@ -127,7 +153,7 @@ class CustomReward(Wrapper):
 def wrap_environment(environment, action_space, monitor=False, iteration=0):
     env = make(environment)
     if monitor:
-        env = wrappers.Monitor(env, 'recording/run%s' % iteration, force=True)
+        env = SafeMonitor(env, 'recording/run%s' % iteration, force=True)
     env = JoypadSpace(env, action_space)
     env = MaxAndSkipEnv(env)
     if 'FIRE' in env.unwrapped.get_action_meanings():
