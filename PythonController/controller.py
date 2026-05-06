@@ -1,7 +1,8 @@
 import argparse
 import socket
 from dataclasses import dataclass
-
+import numpy as np
+from ppo_agent import PPOAgent
 
 ACTION_ORDER = ["LEFT", "RIGHT", "DOWN", "SPEED", "JUMP"]
 
@@ -53,28 +54,95 @@ class StepObservation:
 
 
 class MarioPythonController:
-	def __init__(self) -> None:
-		self.level_data: LevelData | None = None
+    def __init__(self) -> None:
+        self.level_data = None
 
-	def set_level_data(self, level_data: LevelData) -> None:
-		self.level_data = level_data
+        self.prev_obs = None
 
-	def choose_actions(self, obs: StepObservation) -> list[bool]:
-		actions = [False] * len(ACTION_ORDER)
+        self.obs_dim = 2 + 2 + 2 + 200  # tune this
+        self.act_dim = 4  # discrete actions
 
-		actions[1] = True   # RIGHT
-		actions[3] = True   # SPEED
+        self.agent = PPOAgent(self.obs_dim, self.act_dim)
 
-		# Periodic short hops while grounded are a simple baseline behavior.
-		if obs.on_ground and obs.step % 18 in (0, 1):
-			actions[4] = True
+        self.step_counter = 0
+        self.update_interval = 2048
 
-		# Extra example: jump if a block-like obstacle is very close in front.
-		if has_block_ahead(obs):
-			actions[4] = True
+    def set_level_data(self, level_data):
+        self.level_data = level_data
 
-		return actions
+def choose_actions(self, obs: StepObservation):
+    state = obs_to_vector(obs)
 
+    action_idx, log_prob, value = self.agent.act(state)
+    action = ACTIONS[action_idx]
+
+    reward = compute_reward(self.prev_obs, obs)
+    done = obs.status in ("DEAD", "WIN")
+
+    if self.prev_obs is not None:
+        self.agent.store((
+            state,
+            action_idx,
+            reward,
+            done,
+            log_prob,
+            value
+        ))
+
+    self.prev_obs = obs
+    self.step_counter += 1
+
+    # PPO update
+    if self.step_counter % self.update_interval == 0:
+        next_value = 0 if done else value
+        self.agent.update(next_value)
+
+    return action
+
+
+def obs_to_vector(obs: StepObservation):
+    tiles = obs.scene_tiles[:200]
+    if len(tiles) < 200:
+        tiles = tiles + [0] * (200 - len(tiles))
+
+    return np.array([
+        obs.mario_x,
+        obs.mario_y,
+        obs.vel_x,
+        obs.vel_y,
+        float(obs.on_ground),
+        float(obs.may_jump),
+        *tiles
+    ], dtype=np.float32)
+
+ACTIONS = [
+    [0,1,0,1,0],  # run right
+    [0,1,0,1,1],  # jump right
+    [1,0,0,0,0],  # left
+    [0,0,0,0,0],  # idle
+]
+
+def compute_reward(prev, curr):
+    if prev is None:
+        return 0.0
+
+    reward = 0.0
+
+    # forward progress
+    reward += (curr.mario_x - prev.mario_x) * 0.1
+
+    # death penalty
+    if curr.status == "DEAD":
+        reward -= 50
+
+    # win reward
+    if curr.status == "WIN":
+        reward += 100
+
+    # small time penalty
+    reward -= 0.01
+
+    return reward
 
 def parse_bool(value: str) -> bool:
 	return value.lower() in ("1", "true", "t", "yes", "y")
@@ -267,7 +335,8 @@ def serve(host: str, port: int) -> None:
 
 					if tag == "END":
 						print("Game ended:", line.strip())
-						break
+						controller.prev_obs = None
+						continue
 
 					print("Unknown message:", line.strip())
 
