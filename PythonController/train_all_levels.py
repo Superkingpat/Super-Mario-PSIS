@@ -7,6 +7,25 @@ import time
 from pathlib import Path
 
 
+def choose_port(host: str, preferred_port: int) -> int:
+    """Return preferred_port if it appears free, otherwise return an ephemeral free port."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        # On Windows, SO_REUSEADDR can still allow binds even when another process
+        # is listening. Prefer exclusive binds when available.
+        exclusive = getattr(socket, "SO_EXCLUSIVEADDRUSE", None)
+        if exclusive is not None:
+            try:
+                probe.setsockopt(socket.SOL_SOCKET, exclusive, 1)
+            except OSError:
+                pass
+        try:
+            probe.bind((host, int(preferred_port)))
+            return int(preferred_port)
+        except OSError:
+            probe.bind((host, 0))
+            return int(probe.getsockname()[1])
+
+
 def wait_for_port(host: str, port: int, timeout_s: float, proc: subprocess.Popen | None = None) -> bool:
     deadline = time.time() + timeout_s
     while time.time() < deadline:
@@ -48,6 +67,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--per-level-timeout-seconds", type=int, default=300)
     parser.add_argument("--mario-state", type=int, default=0, choices=[0, 1, 2])
     parser.add_argument("--visuals", default="false", choices=["true", "false"])
+    parser.add_argument(
+        "--reuse-java-window",
+        default="auto",
+        choices=["auto", "true", "false"],
+        help="Run all sessions in one Java process (reuses the same window). Default: auto (enabled when --visuals true).",
+    )
     parser.add_argument("--model-path", default=None)
     parser.add_argument("--stats-path", default=None)
     parser.add_argument("--tensorboard-dir", default=None)
@@ -129,6 +154,18 @@ def is_controller_healthy(controller_proc: subprocess.Popen | None, host: str, p
 def main() -> int:
     args = parse_args()
 
+    reuse_java_window = args.reuse_java_window
+    if reuse_java_window == "auto":
+        reuse_java_window = "true" if args.visuals == "true" else "false"
+    reuse_java_window_enabled = reuse_java_window == "true"
+
+    effective_port = int(args.port)
+    if reuse_java_window_enabled:
+        chosen_port = choose_port(args.host, effective_port)
+        if chosen_port != effective_port:
+            print(f"Port {effective_port} is busy; using free port {chosen_port} for this run.")
+        effective_port = chosen_port
+
     repo_root = Path(__file__).resolve().parent.parent
     framework_dir = repo_root / "Mario-AI-Framework"
     controller_path = repo_root / "PythonController" / "controller.py"
@@ -147,7 +184,7 @@ def main() -> int:
         "--host",
         args.host,
         "--port",
-        str(args.port),
+        str(effective_port),
         "--model-path",
         str(model_path),
         "--stats-path",
@@ -161,7 +198,7 @@ def main() -> int:
     controller_proc = None
 
     try:
-        controller_proc = start_controller(controller_cmd, repo_root, args.host, args.port)
+        controller_proc = start_controller(controller_cmd, repo_root, args.host, effective_port)
 
         if not args.no_compile:
             run_checked(
@@ -171,61 +208,116 @@ def main() -> int:
             )
 
         total_runs = args.epochs * len(level_paths)
-        run_index = 0
         failures: list[dict[str, object]] = []
-        for epoch in range(1, args.epochs + 1):
-            print(f"Epoch {epoch}/{args.epochs}")
-            for level_path in level_paths:
-                run_index += 1
-                print(f"[{run_index}/{total_runs}] Training on {level_path}")
-                controller_proc = ensure_controller(controller_proc, controller_cmd, repo_root, args.host, args.port)
-                java_cmd = [
-                    sys.executable,
-                    str(launcher_path),
-                    "--host",
-                    args.host,
-                    "--port",
-                    str(args.port),
-                    "--level",
-                    level_path,
-                    "--timer",
-                    str(args.timer),
-                    "--mario-state",
-                    str(args.mario_state),
-                    "--visuals",
-                    args.visuals,
-                    "--timeout-seconds",
-                    str(args.per_level_timeout_seconds),
-                    "--no-compile",
-                ]
-                attempt = 0
-                while True:
-                    attempt += 1
-                    try:
-                        run_checked(java_cmd, repo_root, timeout_s=args.per_level_timeout_seconds + 30)
-                        break
-                    except RuntimeError as exc:
-                        if attempt == 1:
-                            unhealthy = not is_controller_healthy(controller_proc, args.host, args.port)
-                            if unhealthy or is_controller_failure(str(exc)):
-                                print("Detected controller-related failure. Restarting controller and retrying level once.")
-                                controller_proc = ensure_controller(None if controller_proc is None else controller_proc, controller_cmd, repo_root, args.host, args.port)
-                                continue
 
-                        failure = {
-                            "epoch": epoch,
-                            "run_index": run_index,
-                            "level": level_path,
-                            "attempt": attempt,
-                            "error": str(exc),
-                        }
-                        failures.append(failure)
-                        failure_log_path.parent.mkdir(parents=True, exist_ok=True)
-                        with failure_log_path.open("a", encoding="utf-8") as handle:
-                            handle.write(json.dumps(failure) + "\n")
-                        print(f"Skipping level after failure: {level_path}")
-                        print(str(exc))
-                        break
+        if reuse_java_window_enabled:
+            # Run all sessions in one Java process so the window persists.
+            sessions = total_runs
+            level_arg = ";".join(level_paths)
+            java_cmd = [
+                sys.executable,
+                str(launcher_path),
+                "--host",
+                args.host,
+                "--port",
+                str(effective_port),
+                "--level",
+                level_arg,
+                "--sessions",
+                str(sessions),
+                "--session-timeout-seconds",
+                str(args.per_level_timeout_seconds),
+                "--timer",
+                str(args.timer),
+                "--mario-state",
+                str(args.mario_state),
+                "--visuals",
+                args.visuals,
+                "--timeout-seconds",
+                str((max(1, args.per_level_timeout_seconds) + 10) * max(1, sessions)),
+                "--no-compile",
+            ]
+            attempt = 0
+            while True:
+                attempt += 1
+                try:
+                    run_checked(java_cmd, repo_root, timeout_s=(args.per_level_timeout_seconds + 30) * max(1, sessions))
+                    break
+                except RuntimeError as exc:
+                    if attempt == 1:
+                        unhealthy = not is_controller_healthy(controller_proc, args.host, effective_port)
+                        if unhealthy or is_controller_failure(str(exc)):
+                            print("Detected controller-related failure. Restarting controller and retrying Java run once.")
+                            controller_proc = ensure_controller(None if controller_proc is None else controller_proc, controller_cmd, repo_root, args.host, effective_port)
+                            continue
+
+                    failure = {
+                        "epoch": None,
+                        "run_index": None,
+                        "level": "BATCH",
+                        "attempt": attempt,
+                        "error": str(exc),
+                    }
+                    failures.append(failure)
+                    failure_log_path.parent.mkdir(parents=True, exist_ok=True)
+                    with failure_log_path.open("a", encoding="utf-8") as handle:
+                        handle.write(json.dumps(failure) + "\n")
+                    raise
+        else:
+            run_index = 0
+            for epoch in range(1, args.epochs + 1):
+                print(f"Epoch {epoch}/{args.epochs}")
+                for level_path in level_paths:
+                    run_index += 1
+                    print(f"[{run_index}/{total_runs}] Training on {level_path}")
+                    controller_proc = ensure_controller(controller_proc, controller_cmd, repo_root, args.host, args.port)
+                    java_cmd = [
+                        sys.executable,
+                        str(launcher_path),
+                        "--host",
+                        args.host,
+                        "--port",
+                        str(args.port),
+                        "--level",
+                        level_path,
+                        "--timer",
+                        str(args.timer),
+                        "--mario-state",
+                        str(args.mario_state),
+                        "--visuals",
+                        args.visuals,
+                        "--timeout-seconds",
+                        str(args.per_level_timeout_seconds),
+                        "--no-compile",
+                    ]
+                    attempt = 0
+                    while True:
+                        attempt += 1
+                        try:
+                            run_checked(java_cmd, repo_root, timeout_s=args.per_level_timeout_seconds + 30)
+                            break
+                        except RuntimeError as exc:
+                            if attempt == 1:
+                                unhealthy = not is_controller_healthy(controller_proc, args.host, args.port)
+                                if unhealthy or is_controller_failure(str(exc)):
+                                    print("Detected controller-related failure. Restarting controller and retrying level once.")
+                                    controller_proc = ensure_controller(None if controller_proc is None else controller_proc, controller_cmd, repo_root, args.host, args.port)
+                                    continue
+
+                            failure = {
+                                "epoch": epoch,
+                                "run_index": run_index,
+                                "level": level_path,
+                                "attempt": attempt,
+                                "error": str(exc),
+                            }
+                            failures.append(failure)
+                            failure_log_path.parent.mkdir(parents=True, exist_ok=True)
+                            with failure_log_path.open("a", encoding="utf-8") as handle:
+                                handle.write(json.dumps(failure) + "\n")
+                            print(f"Skipping level after failure: {level_path}")
+                            print(str(exc))
+                            break
 
         print(f"Training complete. Model: {model_path}")
         print(f"Episode stats: {stats_path}")

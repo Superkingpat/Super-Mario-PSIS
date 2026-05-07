@@ -11,6 +11,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--host", default="127.0.0.1", help="Python controller host")
     parser.add_argument("--port", type=int, default=5050, help="Python controller port")
     parser.add_argument("--level", default="./levels/original/lvl-1.txt", help="Level path from Mario-AI-Framework")
+    parser.add_argument(
+        "--sessions",
+        type=int,
+        default=1,
+        help="How many games to run in one Java process (reuses the same window when visuals=true).",
+    )
+    parser.add_argument(
+        "--session-timeout-seconds",
+        type=int,
+        default=None,
+        help="Optional wall-clock timeout per game session (seconds).",
+    )
     parser.add_argument("--timer", type=int, default=200, help="Timer value in framework ticks")
     parser.add_argument("--mario-state", type=int, default=0, choices=[0, 1, 2], help="0=small, 1=large, 2=fire")
     parser.add_argument("--visuals", default="true", choices=["true", "false"], help="Show game window")
@@ -50,8 +62,7 @@ def main() -> int:
                 framework_dir,
             )
 
-        run_checked(
-            [
+        java_cmd = [
                 args.java,
                 "-cp",
                 "src",
@@ -62,10 +73,12 @@ def main() -> int:
                 str(args.timer),
                 str(args.mario_state),
                 args.visuals,
-            ],
-            framework_dir,
-            timeout_s=args.timeout_seconds,
-        )
+                str(args.sessions),
+        ]
+        if args.session_timeout_seconds is not None:
+            java_cmd.append(str(args.session_timeout_seconds))
+
+        run_checked(java_cmd, framework_dir, timeout_s=args.timeout_seconds)
         return 0
     except RuntimeError as exc:
         print(exc)

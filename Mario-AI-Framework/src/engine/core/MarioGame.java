@@ -56,6 +56,16 @@ public class MarioGame {
     private MarioRender render = null;
     private MarioAgent agent = null;
     private MarioWorld world = null;
+    private boolean visualsInitialized = false;
+    private long wallClockTimeoutMs = -1;
+
+    /**
+     * Optional wall-clock timeout for a single run. If > 0, the game loop
+     * terminates with GameStatus.TIME_OUT after this many milliseconds.
+     */
+    public void setWallClockTimeoutMs(long wallClockTimeoutMs) {
+        this.wallClockTimeoutMs = wallClockTimeoutMs;
+    }
 
     /**
      * Create a mario game to be played
@@ -81,8 +91,11 @@ public class MarioGame {
     }
 
     private void setAgent(MarioAgent agent) {
+        if (this.render != null && this.agent instanceof KeyAdapter) {
+            this.render.removeKeyListener((KeyAdapter) this.agent);
+        }
         this.agent = agent;
-        if (agent instanceof KeyAdapter) {
+        if (this.render != null && agent instanceof KeyAdapter) {
             this.render.addKeyListener((KeyAdapter) this.agent);
         }
     }
@@ -205,14 +218,24 @@ public class MarioGame {
      */
     public MarioResult runGame(MarioAgent agent, String level, int timer, int marioState, boolean visuals, int fps, float scale) {
         if (visuals) {
-            this.window = new JFrame("Mario AI Framework");
-            this.render = new MarioRender(scale);
-            this.window.setContentPane(this.render);
-            this.window.pack();
-            this.window.setResizable(false);
-            this.window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            this.render.init();
-            this.window.setVisible(true);
+            boolean needsInit = this.window == null || !this.window.isDisplayable() || this.render == null;
+            if (needsInit) {
+                this.window = new JFrame("Mario AI Framework");
+                this.render = new MarioRender(scale);
+                this.window.setContentPane(this.render);
+                this.window.pack();
+                this.window.setResizable(false);
+                this.window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                this.render.init();
+                this.render.addFocusListener(this.render);
+                this.window.setVisible(true);
+                this.visualsInitialized = true;
+            } else if (!this.visualsInitialized) {
+                // Fallback: ensure focus handling is active if a window/render was injected.
+                this.render.addFocusListener(this.render);
+                this.visualsInitialized = true;
+            }
+            this.render.requestFocusInWindow();
         }
         this.setAgent(agent);
         return this.gameLoop(level, timer, marioState, visuals, fps);
@@ -238,7 +261,6 @@ public class MarioGame {
             renderTarget = this.render.createVolatileImage(MarioGame.width, MarioGame.height);
             backBuffer = this.render.getGraphics();
             currentBuffer = renderTarget.getGraphics();
-            this.render.addFocusListener(this.render);
         }
 
         MarioTimer agentTimer = new MarioTimer(MarioGame.maxTime);
@@ -246,7 +268,12 @@ public class MarioGame {
 
         ArrayList<MarioEvent> gameEvents = new ArrayList<>();
         ArrayList<MarioAgentEvent> agentEvents = new ArrayList<>();
+        final long wallClockStart = System.currentTimeMillis();
         while (this.world.gameStatus == GameStatus.RUNNING) {
+            if (wallClockTimeoutMs > 0 && (System.currentTimeMillis() - wallClockStart) > wallClockTimeoutMs) {
+                this.world.gameStatus = GameStatus.TIME_OUT;
+                break;
+            }
             if (!this.pause) {
                 //get actions
                 agentTimer = new MarioTimer(MarioGame.maxTime);
