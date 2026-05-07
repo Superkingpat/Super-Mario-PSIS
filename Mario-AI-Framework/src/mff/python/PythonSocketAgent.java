@@ -73,7 +73,7 @@ public class PythonSocketAgent implements MarioAgent, AutoCloseable {
             float[] vel = model.getMarioFloatVelocity();
             String enemies = serializeTriples(model.getEnemiesFloatPosAndType());
             String sprites = serializeTriples(model.getSpritesFloatPosAndType());
-            String marioScene = serializeGrid(model.getMarioSceneObservation(0));
+            String marioScene = serializeGrid(model.getMarioSceneObservation(0, 32, 16));
             String aStarActions = serializeAStarActions(model);
             String message = String.format(
                     Locale.US,
@@ -118,12 +118,13 @@ public class PythonSocketAgent implements MarioAgent, AutoCloseable {
         try {
             String message = String.format(
                     Locale.US,
-                    "END\t%s\t%.5f\t%d\t%d\t%d",
+                    "END\t%s\t%.5f\t%d\t%d\t%d\t%d",
                     result.getGameStatus().name(),
                     result.getCompletionPercentage(),
                     result.getRemainingTime(),
                     result.getNumJumps(),
-                    result.getKillsTotal()
+                    result.getKillsTotal(),
+                    result.getCurrentCoins()
             );
             sendLine(message);
         } catch (IOException ignored) {

@@ -35,6 +35,9 @@ public class PythonControllerMain {
                     game.setWallClockTimeoutMs(-1);
                 }
 
+                // If Mario doesn't make forward progress (best X) for 10 seconds, end the run.
+                game.setStuckTimeoutMs(10_000L);
+
                 MarioResult result = game.runGame(agent, level, timer, marioState, visuals);
                 agent.notifyGameOver(result);
                 System.out.println("Game finished: " + result.getGameStatus());

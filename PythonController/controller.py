@@ -1,5 +1,6 @@
 import argparse
 import json
+import math
 import socket
 import time
 import traceback
@@ -16,18 +17,26 @@ except ImportError:
 ACTION_ORDER = ["LEFT", "RIGHT", "DOWN", "SPEED", "JUMP"]
 
 TILE_SIZE = 16.0
-RELATIVE_TILE_WINDOW_WIDTH = 11
-RELATIVE_TILE_WINDOW_HEIGHT = 11
+RELATIVE_TILE_WINDOW_WIDTH = 32
+RELATIVE_TILE_WINDOW_HEIGHT = 16
 MAX_SCENE_TILES = RELATIVE_TILE_WINDOW_WIDTH * RELATIVE_TILE_WINDOW_HEIGHT
 ENEMY_COUNT = 5
-ENEMY_FEATURES_PER_ENEMY = 4  # x, y, velx, vely
+ENEMY_FEATURES_PER_ENEMY = 5  # dx, dy, velx, vely, type
 ENEMY_FEATURE_DIM = ENEMY_COUNT * ENEMY_FEATURES_PER_ENEMY
+MAX_ENEMY_TYPE_ID = 16.0
 MAX_TILE_ABS_VALUE = 32.0
 MAX_MARIO_X = 5000.0
 MAX_MARIO_Y = 300.0
 MAX_VEL_X = 15.0
 MAX_VEL_Y = 20.0
 MAX_REMAINING_TIME = 200000.0
+
+# Stuck penalty: if Mario's x does not change for many consecutive steps, apply
+# a ramping negative reward to discourage dithering.
+STUCK_NO_PROGRESS_EPS_PX = 1.0
+STUCK_STEPS_GRACE = 60
+STUCK_STEPS_RAMP = 120
+STUCK_PENALTY_MAX = 0.05
 
 CURRENT_CONTROLLER = None
 
@@ -86,6 +95,7 @@ class MarioPythonController:
         stats_path: str | None = None,
         save_every: int = 1,
         tensorboard_dir: str | None = None,
+        jump_control: str = "click",
     ) -> None:
         global CURRENT_CONTROLLER
         self.level_data = None
@@ -95,7 +105,28 @@ class MarioPythonController:
         self.pending_transition = None
 
         self.obs_dim = 10 + ENEMY_FEATURE_DIM + MAX_SCENE_TILES
-        self.act_dim = 4  # discrete actions
+
+        self.jump_control = jump_control
+        if self.jump_control not in ("click", "press-release"):
+            raise ValueError(f"Unsupported jump_control: {self.jump_control}")
+
+        # Discrete actions.
+        # - click: action directly includes a one-frame JUMP bit (tap/hold is learned by repeating the action)
+        # - press-release: action space includes explicit PRESS_JUMP and RELEASE_JUMP events; output keeps an internal jump-held state
+        self._action_table_click: list[list[int]] = [
+            [0, 1, 0, 1, 0],  # run right
+            [0, 1, 0, 1, 1],  # jump right (tap)
+            [1, 0, 0, 0, 0],  # left
+            [0, 0, 0, 0, 0],  # idle
+        ]
+
+        # press-release actions:
+        # 0 MOVE_RIGHT, 1 PRESS_JUMP, 2 RELEASE_JUMP, 3 MOVE_LEFT, 4 IDLE
+        self._action_count_press_release = 5
+        self._move_bits = [0, 1, 0, 1]  # LEFT, RIGHT, DOWN, SPEED
+        self._jump_held = False
+
+        self.act_dim = len(self._action_table_click) if self.jump_control == "click" else self._action_count_press_release
 
         self.agent = PPOAgent(self.obs_dim, self.act_dim)
         self.model_path = Path(model_path) if model_path else None
@@ -112,6 +143,22 @@ class MarioPythonController:
         self.episode_jump_reward = 0.0
         self.episode_count = 0
         self.update_count = 0
+
+        self._stuck_steps = 0
+
+    def compute_stuck_penalty(self, prev: StepObservation, curr: StepObservation) -> float:
+        dx = float(curr.mario_x - prev.mario_x)
+        if abs(dx) <= STUCK_NO_PROGRESS_EPS_PX:
+            self._stuck_steps += 1
+        else:
+            self._stuck_steps = 0
+
+        if self._stuck_steps <= STUCK_STEPS_GRACE:
+            return 0.0
+
+        over = self._stuck_steps - STUCK_STEPS_GRACE
+        ramp = min(1.0, over / float(STUCK_STEPS_RAMP))
+        return -STUCK_PENALTY_MAX * ramp
 
         if self.tensorboard_dir:
             if SummaryWriter is None:
@@ -142,6 +189,26 @@ class MarioPythonController:
             else:
                 print(f"Loaded PPO checkpoint from {self.model_path}")
 
+    def resolve_action_bits(self, action_idx: int) -> list[int]:
+        if self.jump_control == "click":
+            if 0 <= action_idx < len(self._action_table_click):
+                return self._action_table_click[action_idx]
+            return self._action_table_click[-1]
+
+        # press-release mode
+        if action_idx == 0:  # MOVE_RIGHT
+            self._move_bits = [0, 1, 0, 1]
+        elif action_idx == 1:  # PRESS_JUMP
+            self._jump_held = True
+        elif action_idx == 2:  # RELEASE_JUMP
+            self._jump_held = False
+        elif action_idx == 3:  # MOVE_LEFT
+            self._move_bits = [1, 0, 0, 0]
+        elif action_idx == 4:  # IDLE
+            self._move_bits = [0, 0, 0, 0]
+
+        return [*self._move_bits, 1 if self._jump_held else 0]
+
     def set_level_data(self, level_data):
         self.level_data = level_data
         self.level_tile_map = {
@@ -154,10 +221,11 @@ class MarioPythonController:
         done = obs.status in TERMINAL_STATUSES
 
         if self.pending_transition is not None and self.prev_obs is not None:
-            prev_state, prev_action_idx, prev_log_prob, prev_value = self.pending_transition
-            reward = compute_reward(ACTIONS[prev_action_idx], self.prev_obs, obs)
-            jump_bonus = self.compute_jump_bonus(ACTIONS[prev_action_idx], self.prev_obs, obs)
+            prev_state, prev_action_idx, prev_action_bits, prev_log_prob, prev_value = self.pending_transition
+            reward = compute_reward(prev_action_bits, self.prev_obs, obs)
+            jump_bonus = self.compute_jump_bonus(prev_action_bits, self.prev_obs, obs)
             reward += jump_bonus
+            reward += self.compute_stuck_penalty(self.prev_obs, obs)
             self.agent.store((
                 prev_state,
                 prev_action_idx,
@@ -172,11 +240,12 @@ class MarioPythonController:
         if done:
             self.pending_transition = None
             self.prev_obs = obs
-            return ACTIONS[-1]
+            self._stuck_steps = 0
+            return self.resolve_action_bits(self.act_dim - 1)
 
         action_idx, log_prob, value = self.agent.act(state)
-        action = ACTIONS[action_idx]
-        self.pending_transition = (state, action_idx, log_prob, value)
+        action = self.resolve_action_bits(action_idx)
+        self.pending_transition = (state, action_idx, action, log_prob, value)
         self.prev_obs = obs
         self.step_counter += 1
 
@@ -192,6 +261,7 @@ class MarioPythonController:
         remaining_time = int(end_parts[3]) if len(end_parts) > 3 else 0
         jumps = int(end_parts[4]) if len(end_parts) > 4 else 0
         kills = int(end_parts[5]) if len(end_parts) > 5 else 0
+        coins = int(end_parts[6]) if len(end_parts) > 6 else 0
 
         # The framework reports terminal state via END, not a final STEP, so we
         # must flush the last pending action into memory here.
@@ -216,10 +286,15 @@ class MarioPythonController:
                 scene_tiles=self.prev_obs.scene_tiles,
                 astar_actions=self.prev_obs.astar_actions,
             )
-            prev_state, prev_action_idx, prev_log_prob, prev_value = self.pending_transition
-            reward = compute_reward(ACTIONS[prev_action_idx], self.prev_obs, terminal_obs)
-            jump_bonus = self.compute_jump_bonus(ACTIONS[prev_action_idx], self.prev_obs, terminal_obs)
+            prev_state, prev_action_idx, prev_action_bits, prev_log_prob, prev_value = self.pending_transition
+            reward = compute_reward(prev_action_bits, self.prev_obs, terminal_obs)
+            jump_bonus = self.compute_jump_bonus(prev_action_bits, self.prev_obs, terminal_obs) * 0.5
             reward += jump_bonus
+            reward += self.compute_stuck_penalty(self.prev_obs, terminal_obs) * 0.5
+
+            # Episode-level bonuses (applied to the terminal transition).
+            reward += float(kills) * 10.0
+            reward += float(coins) * 5.0
             self.agent.store((
                 prev_state,
                 prev_action_idx,
@@ -244,6 +319,7 @@ class MarioPythonController:
             "remaining_time": remaining_time,
             "jumps": jumps,
             "kills": kills,
+            "coins": coins,
             "reward": self.episode_reward,
             "steps": self.episode_steps,
         }
@@ -264,6 +340,7 @@ class MarioPythonController:
             self.tensorboard_writer.add_scalar("episode/remaining_time", remaining_time, self.episode_count)
             self.tensorboard_writer.add_scalar("episode/jumps", jumps, self.episode_count)
             self.tensorboard_writer.add_scalar("episode/kills", kills, self.episode_count)
+            self.tensorboard_writer.add_scalar("episode/coins", coins, self.episode_count)
             self.tensorboard_writer.add_scalar("episode/steps", self.episode_steps, self.episode_count)
             self.tensorboard_writer.add_text("episode/status", status, self.episode_count)
             self.tensorboard_writer.flush()
@@ -277,6 +354,7 @@ class MarioPythonController:
         self.episode_reward = 0.0
         self.episode_steps = 0
         self.episode_jump_reward = 0.0
+        self._stuck_steps = 0
 
     def log_update_metrics(self, metrics: dict | None) -> None:
         if not metrics:
@@ -340,18 +418,9 @@ def obs_to_vector(obs: StepObservation):
 
 
 def build_enemy_features(obs: StepObservation, prev_obs: StepObservation | None) -> list[float]:
-    half_w = RELATIVE_TILE_WINDOW_WIDTH // 2
-    half_h = RELATIVE_TILE_WINDOW_HEIGHT // 2
-    mario_tile_x = int(obs.mario_x / TILE_SIZE)
-    mario_tile_y = int(obs.mario_y / TILE_SIZE)
-
-    # Keep only enemies within the 11x11 tile window centered on Mario.
+    # Always select the closest enemies, regardless of distance.
     candidates: list[tuple[float, ElementPos]] = []
     for enemy in obs.enemies:
-        enemy_tile_x = int(enemy.x / TILE_SIZE)
-        enemy_tile_y = int(enemy.y / TILE_SIZE)
-        if abs(enemy_tile_x - mario_tile_x) > half_w or abs(enemy_tile_y - mario_tile_y) > half_h:
-            continue
         dx = enemy.x - obs.mario_x
         dy = enemy.y - obs.mario_y
         candidates.append((dx * dx + dy * dy, enemy))
@@ -371,6 +440,8 @@ def build_enemy_features(obs: StepObservation, prev_obs: StepObservation | None)
             dt = 1
 
     for enemy in selected:
+        rel_dx = enemy.x - obs.mario_x
+        rel_dy = enemy.y - obs.mario_y
         enemy_vel_x = 0.0
         enemy_vel_y = 0.0
 
@@ -398,10 +469,11 @@ def build_enemy_features(obs: StepObservation, prev_obs: StepObservation | None)
 
         features.extend(
             [
-                float(np.clip(enemy.x / MAX_MARIO_X, -1.0, 1.0)),
-                float(np.clip(enemy.y / MAX_MARIO_Y, -1.0, 1.0)),
+                float(np.clip(rel_dx / MAX_MARIO_X, -1.0, 1.0)),
+                float(np.clip(rel_dy / MAX_MARIO_Y, -1.0, 1.0)),
                 float(np.clip(enemy_vel_x / MAX_VEL_X, -1.0, 1.0)),
                 float(np.clip(enemy_vel_y / MAX_VEL_Y, -1.0, 1.0)),
+                float(np.clip(float(enemy.type_id) / MAX_ENEMY_TYPE_ID, -1.0, 1.0)),
             ]
         )
 
@@ -442,13 +514,6 @@ def build_relative_tile_window(obs: StepObservation) -> list[int]:
     if len(tiles) < MAX_SCENE_TILES:
         tiles.extend([0] * (MAX_SCENE_TILES - len(tiles)))
     return tiles[:MAX_SCENE_TILES]
-
-ACTIONS = [
-    [0,1,0,1,0],  # run right
-    [0,1,0,1,1],  # jump right
-    [1,0,0,0,0],  # left
-    [0,0,0,0,0],  # idle
-]
 
 TERMINAL_STATUSES = {"WIN", "LOSE", "TIME_OUT"}
 
@@ -499,8 +564,12 @@ def compute_reward(action: list[int], prev: StepObservation, curr: StepObservati
 
     reward = 0.0
 
-    # forward progress
-    reward += (curr.mario_x - prev.mario_x) * 0.1
+    # forward progress (exponential in delta-x)
+    dx_tiles = (curr.mario_x - prev.mario_x) / float(TILE_SIZE)
+    dx_tiles = float(np.clip(dx_tiles, -2.0, 2.0))
+    # For small dx: expm1(dx) ≈ dx, so this behaves near-linear,
+    # but rewards larger forward moves more strongly.
+    reward += 0.8 * math.expm1(dx_tiles)
 
     # level completion shaping
     reward += (curr.completion - prev.completion) * 10.0
@@ -511,15 +580,15 @@ def compute_reward(action: list[int], prev: StepObservation, curr: StepObservati
 
     # win reward
     if curr.status == "WIN":
-        reward += 100
+        reward = reward * 4
 
     if curr.status == "TIME_OUT":
         reward -= reward/4
 
     # small time penalty
-    reward -= 0.01
+    reward -= 0.05
 
-    bonus = heuristic_reward_bonus(action, curr)
+    bonus = heuristic_reward_bonus(action, curr) * 10.0
     # print(f"Step {curr.step}: Base reward={reward:.4f}, Heuristic bonus={bonus:.4f}")
     reward += bonus
 
@@ -702,12 +771,14 @@ def serve(
     stats_path: str | None = None,
     save_every: int = 1,
     tensorboard_dir: str | None = None,
+    jump_control: str = "click",
 ) -> None:
     controller = MarioPythonController(
         model_path=model_path,
         stats_path=stats_path,
         save_every=save_every,
         tensorboard_dir=tensorboard_dir,
+        jump_control=jump_control,
     )
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
@@ -769,7 +840,7 @@ def serve(
                         try:
                             parts = line.strip().split("\t")
                             if parts and parts[0] == "STEP":
-                                writer.write(actions_to_line(ACTIONS[-1]) + "\n")
+                                writer.write(actions_to_line(controller.resolve_action_bits(controller.act_dim - 1)) + "\n")
                                 writer.flush()
                         except Exception:
                             pass
@@ -784,6 +855,7 @@ def main() -> None:
     parser.add_argument("--stats-path", default=None)
     parser.add_argument("--save-every", type=int, default=1)
     parser.add_argument("--tensorboard-dir", default=None)
+    parser.add_argument("--jump-control", default="click", choices=["click", "press-release"])
     args = parser.parse_args()
 
     serve(
@@ -793,6 +865,7 @@ def main() -> None:
         stats_path=args.stats_path,
         save_every=args.save_every,
         tensorboard_dir=args.tensorboard_dir,
+        jump_control=args.jump_control,
     )
 
 

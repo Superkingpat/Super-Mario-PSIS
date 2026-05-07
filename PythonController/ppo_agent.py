@@ -57,18 +57,6 @@ class PPOAgent:
 
     def load(self, path):
         checkpoint = torch.load(path, map_location=self.device)
-
-        ckpt_obs_dim = checkpoint.get("obs_dim")
-        ckpt_act_dim = checkpoint.get("act_dim")
-        if ckpt_obs_dim is not None and int(ckpt_obs_dim) != int(self.obs_dim):
-            raise RuntimeError(
-                f"Incompatible checkpoint: obs_dim={ckpt_obs_dim} (checkpoint) != {self.obs_dim} (current)."
-            )
-        if ckpt_act_dim is not None and int(ckpt_act_dim) != int(self.act_dim):
-            raise RuntimeError(
-                f"Incompatible checkpoint: act_dim={ckpt_act_dim} (checkpoint) != {self.act_dim} (current)."
-            )
-
         self.policy.load_state_dict(checkpoint["policy_state_dict"])
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 

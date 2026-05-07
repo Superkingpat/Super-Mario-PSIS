@@ -78,6 +78,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tensorboard-dir", default=None)
     parser.add_argument("--save-every", type=int, default=1)
     parser.add_argument("--no-compile", action="store_true")
+    parser.add_argument("--jump-control", default="click", choices=["click", "press-release"])
     return parser.parse_args()
 
 
@@ -193,6 +194,8 @@ def main() -> int:
         str(tensorboard_dir),
         "--save-every",
         str(args.save_every),
+        "--jump-control",
+        args.jump_control,
     ]
 
     controller_proc = None

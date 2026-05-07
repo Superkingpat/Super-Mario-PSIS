@@ -6,4 +6,5 @@ Mario-AI-Framework/clone-benchmark
 *.class
 .venv*
 __pycache__
-/PythonController/checkpoints
+*.pt 
+

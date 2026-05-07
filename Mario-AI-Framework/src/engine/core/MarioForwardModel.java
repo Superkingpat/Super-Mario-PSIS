@@ -658,4 +658,8 @@ public class MarioForwardModel {
     public int[][] getMarioSceneObservation(int detail) {
         return this.world.getSceneObservation(this.world.mario.x, this.world.mario.y, detail);
     }
+
+    public int[][] getMarioSceneObservation(int detail, int obsTileWidth, int obsTileHeight) {
+        return this.world.getSceneObservation(this.world.mario.x, this.world.mario.y, detail, obsTileWidth, obsTileHeight);
+    }
 }

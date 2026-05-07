@@ -188,12 +188,20 @@ public class MarioWorld {
     }
 
     public int[][] getSceneObservation(float centerX, float centerY, int detail) {
-        int[][] ret = new int[MarioGame.tileWidth][MarioGame.tileHeight];
+        return getSceneObservation(centerX, centerY, detail, MarioGame.tileWidth, MarioGame.tileHeight);
+    }
+
+    public int[][] getSceneObservation(float centerX, float centerY, int detail, int obsTileWidth, int obsTileHeight) {
+        if (obsTileWidth <= 0 || obsTileHeight <= 0) {
+            return new int[0][0];
+        }
+
+        int[][] ret = new int[obsTileWidth][obsTileHeight];
         int centerXInMap = (int) centerX / 16;
         int centerYInMap = (int) centerY / 16;
 
-        for (int y = centerYInMap - MarioGame.tileHeight / 2, obsY = 0; y < centerYInMap + MarioGame.tileHeight / 2; y++, obsY++) {
-            for (int x = centerXInMap - MarioGame.tileWidth / 2, obsX = 0; x < centerXInMap + MarioGame.tileWidth / 2; x++, obsX++) {
+        for (int y = centerYInMap - obsTileHeight / 2, obsY = 0; y < centerYInMap + obsTileHeight / 2; y++, obsY++) {
+            for (int x = centerXInMap - obsTileWidth / 2, obsX = 0; x < centerXInMap + obsTileWidth / 2; x++, obsX++) {
                 int currentX = x;
                 if (currentX < 0) {
                     currentX = 0;

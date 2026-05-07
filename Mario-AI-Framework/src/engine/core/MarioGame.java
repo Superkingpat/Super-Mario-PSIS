@@ -58,6 +58,7 @@ public class MarioGame {
     private MarioWorld world = null;
     private boolean visualsInitialized = false;
     private long wallClockTimeoutMs = -1;
+    private long stuckTimeoutMs = -1;
 
     /**
      * Optional wall-clock timeout for a single run. If > 0, the game loop
@@ -65,6 +66,15 @@ public class MarioGame {
      */
     public void setWallClockTimeoutMs(long wallClockTimeoutMs) {
         this.wallClockTimeoutMs = wallClockTimeoutMs;
+    }
+
+    /**
+     * Optional "stuck" timeout for a single run. If > 0, the game loop
+     * terminates with GameStatus.TIME_OUT if Mario's best (max) X position
+     * does not improve for this many milliseconds.
+     */
+    public void setStuckTimeoutMs(long stuckTimeoutMs) {
+        this.stuckTimeoutMs = stuckTimeoutMs;
     }
 
     /**
@@ -269,6 +279,11 @@ public class MarioGame {
         ArrayList<MarioEvent> gameEvents = new ArrayList<>();
         ArrayList<MarioAgentEvent> agentEvents = new ArrayList<>();
         final long wallClockStart = System.currentTimeMillis();
+
+        final float progressEpsilonX = 0.5f;
+        float bestX = this.world.mario.x;
+        long lastBestXTime = System.currentTimeMillis();
+
         while (this.world.gameStatus == GameStatus.RUNNING) {
             if (wallClockTimeoutMs > 0 && (System.currentTimeMillis() - wallClockStart) > wallClockTimeoutMs) {
                 this.world.gameStatus = GameStatus.TIME_OUT;
@@ -286,6 +301,19 @@ public class MarioGame {
                 }
                 // update world
                 this.world.update(actions);
+
+                if (stuckTimeoutMs > 0) {
+                    long now = System.currentTimeMillis();
+                    float x = this.world.mario.x;
+                    if (x > bestX + progressEpsilonX) {
+                        bestX = x;
+                        lastBestXTime = now;
+                    } else if ((now - lastBestXTime) > stuckTimeoutMs) {
+                        this.world.gameStatus = GameStatus.TIME_OUT;
+                        break;
+                    }
+                }
+
                 gameEvents.addAll(this.world.lastFrameEvents);
                 agentEvents.add(new MarioAgentEvent(actions, this.world.mario.x,
                         this.world.mario.y, (this.world.mario.isLarge ? 1 : 0) + (this.world.mario.isFire ? 1 : 0),
