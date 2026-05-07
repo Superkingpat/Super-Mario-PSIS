@@ -16,13 +16,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--visuals", default="true", choices=["true", "false"], help="Show game window")
     parser.add_argument("--java", default="java", help="Java executable")
     parser.add_argument("--javac", default="javac", help="Javac executable")
+    parser.add_argument("--timeout-seconds", type=int, default=None, help="Optional wall-clock timeout for the Java run")
     parser.add_argument("--no-compile", action="store_true", help="Skip javac step")
     return parser.parse_args()
 
 
-def run_checked(command: list[str], cwd: Path) -> None:
+def run_checked(command: list[str], cwd: Path, timeout_s: float | None = None) -> None:
     print("Running:", " ".join(command))
-    completed = subprocess.run(command, cwd=str(cwd), check=False)
+    try:
+        completed = subprocess.run(command, cwd=str(cwd), check=False, timeout=timeout_s)
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"Command timed out after {timeout_s:.0f}s: {' '.join(command)}") from exc
     if completed.returncode != 0:
         raise RuntimeError(f"Command failed with exit code {completed.returncode}: {' '.join(command)}")
 
@@ -60,6 +64,7 @@ def main() -> int:
                 args.visuals,
             ],
             framework_dir,
+            timeout_s=args.timeout_seconds,
         )
         return 0
     except RuntimeError as exc:
