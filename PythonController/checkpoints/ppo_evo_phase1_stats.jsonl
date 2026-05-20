@@ -1,0 +1,10 @@
+{"episode": 1, "status": "TIME_OUT", "completion": 0.23074, "remaining_time": 182210, "jumps": 42, "kills": 0, "coins": 0, "reward": 42.30747368236507, "steps": 592}
+{"episode": 2, "status": "LOSE", "completion": 0.08671, "remaining_time": 198620, "jumps": 3, "kills": 0, "coins": 0, "reward": -0.9252929113430151, "steps": 45}
+{"episode": 3, "status": "LOSE", "completion": 0.08045, "remaining_time": 198170, "jumps": 4, "kills": 0, "coins": 1, "reward": 0.02821169488160713, "steps": 60}
+{"episode": 4, "status": "TIME_OUT", "completion": 0.06489, "remaining_time": 193760, "jumps": 16, "kills": 0, "coins": 0, "reward": -3.407024285378898, "steps": 207}
+{"episode": 5, "status": "LOSE", "completion": 0.08786, "remaining_time": 197990, "jumps": 4, "kills": 0, "coins": 0, "reward": -0.04220809640301493, "steps": 66}
+{"episode": 6, "status": "LOSE", "completion": 0.22493, "remaining_time": 190100, "jumps": 26, "kills": 0, "coins": 1, "reward": 13.497040277677108, "steps": 329}
+{"episode": 7, "status": "TIME_OUT", "completion": 0.07289, "remaining_time": 190550, "jumps": 21, "kills": 0, "coins": 0, "reward": -2.1212920138349065, "steps": 314}
+{"episode": 8, "status": "TIME_OUT", "completion": 0.14572, "remaining_time": 181310, "jumps": 44, "kills": 0, "coins": 0, "reward": 42.09753564710615, "steps": 622}
+{"episode": 9, "status": "LOSE", "completion": 0.13849, "remaining_time": 197450, "jumps": 6, "kills": 0, "coins": 0, "reward": 2.762629884802636, "steps": 84}
+{"episode": 10, "status": "TIME_OUT", "completion": 0.13828, "remaining_time": 186290, "jumps": 33, "kills": 0, "coins": 0, "reward": 31.07563821950744, "steps": 456}
