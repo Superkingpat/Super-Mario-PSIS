@@ -1207,3 +1207,5 @@
 {"episode": 45, "status": "LOSE", "completion": 0.22189, "remaining_time": 196760, "jumps": 5, "kills": 0, "coins": 0, "reward": 57.956832574462425, "steps": 107}
 {"episode": 46, "status": "LOSE", "completion": 0.4483, "remaining_time": 188870, "jumps": 18, "kills": 2, "coins": 0, "reward": 150.24640884305364, "steps": 370}
 {"episode": 47, "status": "LOSE", "completion": 0.10068, "remaining_time": 199010, "jumps": 1, "kills": 0, "coins": 0, "reward": 20.835314710644006, "steps": 32}
+{"episode": 48, "status": "LOSE", "completion": 0.22788, "remaining_time": 196340, "jumps": 6, "kills": 1, "coins": 1, "reward": 77.44956529796525, "steps": 121}
+{"episode": 49, "status": "LOSE", "completion": 0.2863, "remaining_time": 193400, "jumps": 11, "kills": 0, "coins": 0, "reward": 88.14742945593079, "steps": 219}
